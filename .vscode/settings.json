@@ -1,0 +1,14 @@
+{
+    "python.languageServer": "Jedi",
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "files.associations": {
+        "metadata.txt": "ini"
+    }
+}
