@@ -40,7 +40,9 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterCrs,
                        QgsCoordinateReferenceSystem,
-                       QgsVectorLayer)
+                       QgsVectorLayer,
+                       QgsProcessingParameterEnum
+                       )
 
 
 class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
@@ -64,13 +66,14 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
     INPUT = 'INPUT'
     BUFFER_DISTANCE = 'BUFFER_DISTANCE'
     OUTPUT = 'OUTPUT'
+    BUFFER_CAP_STYLE = 'BUFFER_CAP_STYLE'
+
 
     def initAlgorithm(self, config=None):
         # Parameter for the input layer
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Layer'))
-        # Parameter for the buffer distance
         self.addParameter(QgsProcessingParameterNumber(self.BUFFER_DISTANCE, 'Buffer Distance', defaultValue=100))
-        # Parameter for the output layer
+        self.addParameter(QgsProcessingParameterEnum(self.BUFFER_CAP_STYLE, 'Buffer Cap Style', options=['Round', 'Flat', 'Square'], defaultValue=0))
         self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT, 'Output Layer'))
 
     def processAlgorithm(self, parameters, context, feedback):
