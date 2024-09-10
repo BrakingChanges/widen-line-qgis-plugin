@@ -32,6 +32,7 @@ __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
 from .taxiway_widen_algorithm import TaxiwayWidenerAlgorithm
+from .polygon_to_singlepart_algorithm import PolygonToSinglePartLinesAlgorithm
 
 
 class TaxiwayWidenerProvider(QgsProcessingProvider):
@@ -54,8 +55,7 @@ class TaxiwayWidenerProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(TaxiwayWidenerAlgorithm())
-        # add additional algorithms here
-        # self.addAlgorithm(MyOtherAlgorithm())
+        self.addAlgorithm(PolygonToSinglePartLinesAlgorithm())
 
     def id(self):
         """
