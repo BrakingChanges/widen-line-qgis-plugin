@@ -41,7 +41,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterCrs,
                        QgsCoordinateReferenceSystem,
                        QgsVectorLayer,
-                       QgsProcessingParameterEnum
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterBoolean
                        )
 
 
@@ -67,6 +68,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
     BUFFER_DISTANCE = 'BUFFER_DISTANCE'
     OUTPUT = 'OUTPUT'
     BUFFER_CAP_STYLE = 'BUFFER_CAP_STYLE'
+    DISSOLVE = 'DISSOLVE'
 
 
     def initAlgorithm(self, config=None):
@@ -74,6 +76,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Layer'))
         self.addParameter(QgsProcessingParameterNumber(self.BUFFER_DISTANCE, 'Buffer Distance', defaultValue=100))
         self.addParameter(QgsProcessingParameterEnum(self.BUFFER_CAP_STYLE, 'Buffer Cap Style', options=['Round', 'Flat', 'Square'], defaultValue=0))
+        self.addParameter(QgsProcessingParameterBoolean(self.DISSOLVE, 'Dissolve result'))
         self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT, 'Output Layer'))
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -116,9 +119,11 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         # Buffer the reprojected layer
         feedback.pushInfo('Buffering the reprojected layer...')
         buffer_distance = self.parameterAsDouble(parameters, self.BUFFER_DISTANCE, context)
+        dissolve = self.parameterAsBoolean(parameters, self.DISSOLVE, context)
         buffered_layer = processing.run("qgis:buffer", {
             'INPUT': reprojected_layer,
             'DISTANCE': buffer_distance,
+            'DISSOLVE': dissolve,
             'OUTPUT': 'memory:'
         }, context=context, feedback=feedback)['OUTPUT']
         

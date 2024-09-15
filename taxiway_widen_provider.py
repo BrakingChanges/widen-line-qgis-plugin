@@ -33,6 +33,7 @@ __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
 from .taxiway_widen_algorithm import TaxiwayWidenerAlgorithm
 from .polygon_to_singlepart_algorithm import PolygonToSinglePartLinesAlgorithm
+from .fetch_osm_data_algorithm import FetchOSMDataAlgorithm
 
 
 class TaxiwayWidenerProvider(QgsProcessingProvider):
@@ -56,6 +57,7 @@ class TaxiwayWidenerProvider(QgsProcessingProvider):
         """
         self.addAlgorithm(TaxiwayWidenerAlgorithm())
         self.addAlgorithm(PolygonToSinglePartLinesAlgorithm())
+        self.addAlgorithm(FetchOSMDataAlgorithm())
 
     def id(self):
         """
