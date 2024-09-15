@@ -39,13 +39,24 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		
 		# Run OSM query for airport based on ICAO code
 		feedback.pushInfo(f"Fetching OSM data for {icao_code}...")
+		feature_path = os.path.join(output_dir, f'001_aeroway_aerodrome.gpkg')
 		ad_layer_initial = processing.run("quickosm:downloadosmdatanotspatialquery", {
 			'KEY': 'icao',
 			'VALUE': icao_code,
 			'TIMEOUT': 25,
 			'SERVER': 'https://overpass-api.de/api/interpreter',
-			'FILE': os.path.join(output_dir, f'{icao_code}_aerodrome.gpkg')
+			'FILE': feature_path
 		}, context=context, feedback=feedback)
+
+		layer = QgsVectorLayer(feature_path, "master", "ogr")
+		sub_layers = layer.dataProvider().subLayers()
+
+		for sub_layer in sub_layers:
+			name = sub_layer.split(QgsDataProvider.sublayerSeparator())[1]
+			uri = f"{feature_path}|layername={name}"
+			sub_vlayer = QgsVectorLayer(uri, name, "ogr")
+			QgsProject.instance().addMapLayer(sub_vlayer)
+
 		
 		ad_multipoly: QgsVectorLayer = ad_layer_initial['OUTPUT_MULTIPOLYGONS']
 		if not ad_multipoly.isValid():
@@ -54,38 +65,48 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		
 		ad_extent = ad_multipoly.extent()
 
-		count = 1
+		count = 2
 		total_features = len(self.FEATURE_TYPES)
 
 		for feature in self.FEATURE_TYPES:
 			feedback.pushInfo(f"Fetching {feature} data...")
-			
+			feature_path = os.path.join(output_dir, f'{str(count).zfill(3)}_{feature}.gpkg')
 			feature_initial = processing.run("quickosm:downloadosmdataextentquery", {
 				'KEY': 'aeroway',
 				'VALUE': feature,
 				'EXTENT': ad_extent,
 				'TIMEOUT': 25,
 				'SERVER': 'https://overpass-api.de/api/interpreter',
-				'FILE': 'memory:'
+				'FILE': feature_path
 			}, context=context, feedback=feedback)
 			
-			filtered_layers = list(filter(lambda x: x.featureCount() > 0, feature_initial.values()))
-			for layer in filtered_layers:
-				layer_name = f'{str(count).zfill(3)}_aeroway_{feature}'
-				layer.setName(layer_name)
+			# filtered_layers = list(filter(lambda x: x.featureCount() > 0, feature_initial.values()))
+			# for layer in filtered_layers:
+			# 	layer_name = f'{str(count).zfill(3)}_aeroway_{feature}'
+			# 	layer.setName(layer_name)
 
-				layer_path = os.path.join(output_dir, f'{layer_name}.gpkg')
+			# 	layer_path = os.path.join(output_dir, f'{layer_name}.gpkg')
 				
-				processing.run("native:saveselectedfeatures", {
-					'INPUT': layer,
-					'OUTPUT': layer_path
-				}, context=context, feedback=feedback)
+			# 	processing.run("native:saveselectedfeatures", {
+			# 		'INPUT': layer,
+			# 		'OUTPUT': layer_path
+			# 	}, context=context, feedback=feedback)
 			
-				self.load_all_layers_from_gpkg(layer_path, feedback)
-				count += 1
+			# 	self.load_all_layers_from_gpkg(layer_path, feedback)
+			# 	count += 1
+
+			layer = QgsVectorLayer(feature_path, "master", "ogr")
+			sub_layers = layer.dataProvider().subLayers()
+
+			for sub_layer in sub_layers:
+				name = sub_layer.split(QgsDataProvider.sublayerSeparator())[1]
+				uri = f"{feature_path}|layername={name}"
+				sub_vlayer = QgsVectorLayer(uri, name, "ogr")
+				QgsProject.instance().addMapLayer(sub_vlayer)
 
 
 			# Update progress after processing each feature
+			count += 1
 			feedback.setProgress((count / total_features) * 100)
 
 		feedback.pushInfo(f"Completed fetching data for {icao_code}")
