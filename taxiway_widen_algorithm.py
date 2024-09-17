@@ -35,8 +35,8 @@ from qgis import processing
 from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterFeatureSink,
+                       QgsProcessingParameterVectorLayer,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterCrs,
                        QgsCoordinateReferenceSystem,
@@ -76,7 +76,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         # Parameter for the input layer
-        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Layer'))
+        self.addParameter(QgsProcessingParameterVectorLayer(self.INPUT, 'Input Layer'))
         self.addParameter(QgsProcessingParameterNumber(self.BUFFER_DISTANCE, 'Buffer Distance', defaultValue=100))
         self.addParameter(QgsProcessingParameterEnum(self.BUFFER_CAP_STYLE, 'Buffer Cap Style', options=['Round', 'Flat', 'Square'], defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(self.AUTO_POLY_LINESTRING, 'Convert result to linestring'))
@@ -85,7 +85,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # Retrieve the input layer from parameters
-        layer = self.parameterAsSource(parameters, self.INPUT, context)
+        layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
         
         if layer is None:
             feedback.reportError('Could not load input layer!')
@@ -134,7 +134,6 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
             'DISSOLVE': dissolve,
             'OUTPUT': 'TEMPORARY_OUTPUT'
         }, context=context, feedback=feedback)['OUTPUT']
-        QgsProject.instance().addMapLayer(buffered_layer)
         
         if buffered_layer is None:
             feedback.reportError('Buffering failed!')
@@ -144,20 +143,16 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo('Reprojecting back to the original CRS...')
         
         # Incase you needed WGS72
-
         auto_poly_linestring = self.parameterAsBoolean(parameters, self.AUTO_POLY_LINESTRING, context)
 
 
         if auto_poly_linestring: 
             final_layer = processing.run("twywiden:polygontosinglepart", {
-                'INPUT': buffered_layer.id(),
+                'INPUT': buffered_layer,
                 'OUTPUT':'memory:'
             })['OUTPUT']
         else:
             final_layer = buffered_layer
-
-        QgsProject.instance().removeMapLayer(buffered_layer)
-
 
         if final_layer is None:
             feedback.reportError('Final reprojection failed!')
@@ -170,6 +165,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         for feature in final_layer.getFeatures():
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
 
+        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4326'))
         feedback.pushInfo('Algorithm completed successfully.')
         return {self.OUTPUT: dest_id}
 

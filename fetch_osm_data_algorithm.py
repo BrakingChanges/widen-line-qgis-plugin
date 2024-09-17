@@ -5,7 +5,8 @@ from qgis.core import (
 	QgsProcessingAlgorithm, 
 	QgsProcessingParameterString, 
 	QgsProcessingParameterFileDestination, 
-	QgsProcessingParameterFeatureSink, 
+	QgsProcessingParameterFeatureSink,
+	QgsProcessingParameterBoolean,
 	QgsProcessingFeedback, 
 	QgsProcessingContext, 
 	QgsProject, 
@@ -20,6 +21,9 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 	ICAO_CODE = 'ICAO_CODE'
 	OUTPUT_DIR = 'OUTPUT_DIR'
+	AUTO_WIDEN_TAXIWAYS = 'AUTO_WIDEN_TAXIWAY'
+	AUTO_WIDENED_TAXIWAYS_LINESTRING = 'AUTO_WIDENED_TAXIWAYS_LINESTRING'
+	AUTO_POLYGON_LINESTRING = 'AUTO_POLYGON_LINESTRING'
 	
 	FEATURE_TYPES = ['heliport', 'runway', 'stopway', 'helipad', 'taxiway', 'holding_position',
 					 'arresting_gear', 'apron', 'parking_position', 'gate', 'terminal', 'hangar',
@@ -28,9 +32,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 	def initAlgorithm(self, config=None):
 		# Input ICAO code
-		self.addParameter(QgsProcessingParameterString(self.ICAO_CODE, 'ICAO Code (e.g., HKJK)'))
-		
-		# Output directory where fetched OSM data will be saved
+		self.addParameter(QgsProcessingParameterString(self.ICAO_CODE, 'ICAO Code'))
+		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS, 'Automatically Widen Taxiways'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output Directory'))
 
 	def processAlgorithm(self, parameters, context: QgsProcessingContext, feedback: QgsProcessingFeedback):
