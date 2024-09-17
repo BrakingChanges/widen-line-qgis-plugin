@@ -42,7 +42,8 @@ from qgis.core import (QgsProcessing,
                        QgsCoordinateReferenceSystem,
                        QgsVectorLayer,
                        QgsProcessingParameterEnum,
-                       QgsProcessingParameterBoolean
+                       QgsProcessingParameterBoolean,
+                       QgsProject
                        )
 
 
@@ -69,6 +70,8 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
     OUTPUT = 'OUTPUT'
     BUFFER_CAP_STYLE = 'BUFFER_CAP_STYLE'
     DISSOLVE = 'DISSOLVE'
+    AUTO_POLY_LINESTRING = 'AUTO_POLY_LINESTRING'
+
 
 
     def initAlgorithm(self, config=None):
@@ -76,6 +79,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Layer'))
         self.addParameter(QgsProcessingParameterNumber(self.BUFFER_DISTANCE, 'Buffer Distance', defaultValue=100))
         self.addParameter(QgsProcessingParameterEnum(self.BUFFER_CAP_STYLE, 'Buffer Cap Style', options=['Round', 'Flat', 'Square'], defaultValue=0))
+        self.addParameter(QgsProcessingParameterBoolean(self.AUTO_POLY_LINESTRING, 'Convert result to linestring'))
         self.addParameter(QgsProcessingParameterBoolean(self.DISSOLVE, 'Dissolve result'))
         self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT, 'Output Layer'))
 
@@ -108,7 +112,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo('Reprojecting to calculated UTM CRS...')
         reprojected_layer = processing.run("qgis:reprojectlayer", {
             'INPUT': layer_source,
-            'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}').toWkt(),
+            'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
             'OUTPUT': 'memory:'
         }, context=context, feedback=feedback)['OUTPUT']
         
@@ -120,6 +124,8 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo('Buffering the reprojected layer...')
         buffer_distance = self.parameterAsDouble(parameters, self.BUFFER_DISTANCE, context)
         dissolve = self.parameterAsBoolean(parameters, self.DISSOLVE, context)
+
+        #TODO: Add WGS72 conversion if required :)
         buffered_layer = processing.run("qgis:buffer", {
             'INPUT': reprojected_layer,
             'DISTANCE': buffer_distance,
@@ -133,11 +139,22 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         
         # Reproject back to the original CRS
         feedback.pushInfo('Reprojecting back to the original CRS...')
-        final_layer = processing.run("qgis:reprojectlayer", {
-            'INPUT': buffered_layer,
-            'TARGET_CRS': layer.sourceCrs().toWkt(),
-            'OUTPUT': 'memory:'
-        }, context=context, feedback=feedback)['OUTPUT']
+        
+        # Incase you needed WGS72
+        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4326'))
+
+        reprojected_orig_layer = buffered_layer
+        auto_poly_linestring = self.parameterAsBoolean(parameters, self.AUTO_POLY_LINESTRING, context)
+
+
+        if auto_poly_linestring: 
+            final_layer = processing.run("twywiden:polygontosinglepart", {
+                'INPUT': reprojected_orig_layer,
+                'OUTPUT':'memory:'
+            })['OUTPUT']
+        else:
+            final_layer = reprojected_orig_layer
+
 
         if final_layer is None:
             feedback.reportError('Final reprojection failed!')
