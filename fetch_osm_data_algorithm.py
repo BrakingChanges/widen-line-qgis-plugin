@@ -11,7 +11,8 @@ from qgis.core import (
 	QgsProject, 
 	QgsVectorLayer,
 	QgsVectorFileWriter,
-	QgsDataProvider
+	QgsDataProvider,
+	QgsCoordinateReferenceSystem
 )
 from qgis.core import QgsProcessingParameterFolderDestination
 
@@ -47,7 +48,6 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			'SERVER': 'https://overpass-api.de/api/interpreter',
 			'FILE': feature_path
 		}, context=context, feedback=feedback)
-
 		layer = QgsVectorLayer(feature_path, "master", "ogr")
 		sub_layers = layer.dataProvider().subLayers()
 
@@ -55,7 +55,16 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			name = sub_layer.split(QgsDataProvider.sublayerSeparator())[1]
 			uri = f"{feature_path}|layername={name}"
 			sub_vlayer = QgsVectorLayer(uri, name, "ogr")
-			QgsProject.instance().addMapLayer(sub_vlayer)
+			feedback.pushInfo(sub_vlayer.crs().toWkt())
+
+			# Add the layer to the project
+			if sub_vlayer.isValid():
+				QgsProject.instance().addMapLayer(sub_vlayer)
+				sub_vlayer.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+				QgsProject.instance().addMapLayer(sub_vlayer)
+				feedback.pushInfo(f"Sublayer {name} loaded successfully.")
+			else:
+				feedback.pushInfo(f"Failed to load sublayer {name}.")
 
 		
 		ad_multipoly: QgsVectorLayer = ad_layer_initial['OUTPUT_MULTIPOLYGONS']
