@@ -101,8 +101,11 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         longitude = centroid.x()
         utm_zone = int((longitude + 180) / 6) + 1
 
+        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4322'))
+
+
         # Determine the hemisphere (Northern/Southern)
-        hemisphere = '326' if centroid.y() >= 0 else '327'  # EPSG:326xx for Northern, EPSG:327xx for Southern
+        hemisphere = '322' if centroid.y() >= 0 else '323'  # EPSG:326xx for Northern, EPSG:327xx for Southern
         epsg_code = int(f'{hemisphere}{utm_zone}')
 
         feedback.pushInfo(f'Calculated UTM zone: {utm_zone}, EPSG: {epsg_code}')
@@ -125,13 +128,13 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         buffer_distance = self.parameterAsDouble(parameters, self.BUFFER_DISTANCE, context)
         dissolve = self.parameterAsBoolean(parameters, self.DISSOLVE, context)
 
-        #TODO: Add WGS72 conversion if required :)
-        buffered_layer = processing.run("qgis:buffer", {
+        buffered_layer: QgsVectorLayer = processing.run("qgis:buffer", {
             'INPUT': reprojected_layer,
             'DISTANCE': buffer_distance,
             'DISSOLVE': dissolve,
-            'OUTPUT': 'memory:'
+            'OUTPUT': 'TEMPORARY_OUTPUT'
         }, context=context, feedback=feedback)['OUTPUT']
+        QgsProject.instance().addMapLayer(buffered_layer)
         
         if buffered_layer is None:
             feedback.reportError('Buffering failed!')
@@ -141,19 +144,19 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo('Reprojecting back to the original CRS...')
         
         # Incase you needed WGS72
-        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4326'))
 
-        reprojected_orig_layer = buffered_layer
         auto_poly_linestring = self.parameterAsBoolean(parameters, self.AUTO_POLY_LINESTRING, context)
 
 
         if auto_poly_linestring: 
             final_layer = processing.run("twywiden:polygontosinglepart", {
-                'INPUT': reprojected_orig_layer,
+                'INPUT': buffered_layer.id(),
                 'OUTPUT':'memory:'
             })['OUTPUT']
         else:
-            final_layer = reprojected_orig_layer
+            final_layer = buffered_layer
+
+        QgsProject.instance().removeMapLayer(buffered_layer)
 
 
         if final_layer is None:

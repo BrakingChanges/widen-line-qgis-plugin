@@ -74,7 +74,7 @@ class TaxiwayWidenerProvider(QgsProcessingProvider):
 
         This string should be short (e.g. "Lastools") and localised.
         """
-        return self.tr('TaxiwayWidener')
+        return self.tr('AerodromeUtilities')
 
     def icon(self):
         """
