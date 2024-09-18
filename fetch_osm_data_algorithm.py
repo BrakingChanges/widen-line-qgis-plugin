@@ -13,7 +13,9 @@ from qgis.core import (
 	QgsVectorLayer,
 	QgsVectorFileWriter,
 	QgsDataProvider,
-	QgsCoordinateReferenceSystem
+	QgsCoordinateReferenceSystem,
+	QgsProcessingParameterNumber,
+	QgsWkbTypes
 )
 from qgis.core import QgsProcessingParameterFolderDestination
 
@@ -29,6 +31,11 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 					 'arresting_gear', 'apron', 'parking_position', 'gate', 'terminal', 'hangar',
 					 'grass', 'beacon', 'navigationaid', 'windsock', 'spaceport', 'airstrip',
 					 'aircraft_crossing', 'tower', 'service', 'parking']
+	GEOMETRY_TYPES = {
+		QgsWkbTypes.PointGeometry: 'POINT',
+		QgsWkbTypes.LineGeometry: 'LINE',
+		QgsWkbTypes.PolygonGeometry: 'POLIGON'
+	}
 
 	def initAlgorithm(self, config=None):
 		# Input ICAO code
@@ -114,6 +121,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 				name = sub_layer.split(QgsDataProvider.sublayerSeparator())[1]
 				uri = f"{feature_path}|layername={name}"
 				sub_vlayer = QgsVectorLayer(uri, name, "ogr")
+				sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
 				QgsProject.instance().addMapLayer(sub_vlayer)
 
 
