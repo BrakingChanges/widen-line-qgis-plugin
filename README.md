@@ -1,4 +1,6 @@
-# TaxiwayWidener(AerodromeUtilities)
+# TaxiwayWidener(AerodromeUtilities) Dev Edition!
+
+May or May not crash your QGis!
 
 TaxiwayWidener, now AerodromeUtilities is a simple plugin helping in fetching OSM data for airports, widening taxiways and converting polygons to linestring. **PLEASE NOTE: This plugin is quite incomplete :) so except many bugs**
 
