@@ -24,6 +24,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 	ICAO_CODE = 'ICAO_CODE'
 	OUTPUT_DIR = 'OUTPUT_DIR'
 	AUTO_WIDEN_TAXIWAYS = 'AUTO_WIDEN_TAXIWAY'
+	AUTO_WIDEN_TAXIWAYS_WIDTH = 'AUTO_WIDEN_TAXIWAYS_WIDTH'
 	AUTO_WIDENED_TAXIWAYS_LINESTRING = 'AUTO_WIDENED_TAXIWAYS_LINESTRING'
 	AUTO_POLYGON_LINESTRING = 'AUTO_POLYGON_LINESTRING'
 	
@@ -41,12 +42,16 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		# Input ICAO code
 		self.addParameter(QgsProcessingParameterString(self.ICAO_CODE, 'ICAO Code'))
 		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS, 'Automatically Widen Taxiways'))
+		self.addParameter(QgsProcessingParameterNumber(self.AUTO_WIDEN_TAXIWAYS_WIDTH, 'Auto Taxiway Widen Width'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output Directory'))
 
 	def processAlgorithm(self, parameters, context: QgsProcessingContext, feedback: QgsProcessingFeedback):
 		# Get ICAO code and output directory
 		icao_code = self.parameterAsString(parameters, self.ICAO_CODE, context).upper()
 		output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+		auto_widen_taxiway = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS, context)
+		auto_widen_width = self.parameterAsInt(parameters, self.AUTO_WIDEN_TAXIWAYS_WIDTH, context)
+
 		
 		# Run OSM query for airport based on ICAO code
 		feedback.pushInfo(f"Fetching OSM data for {icao_code}...")
@@ -122,8 +127,25 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 				uri = f"{feature_path}|layername={name}"
 				sub_vlayer = QgsVectorLayer(uri, name, "ogr")
 				sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
+		
+
 				QgsProject.instance().addMapLayer(sub_vlayer)
 
+				layer_feature = sub_vlayer.getFeature(0)
+				aeroway = layer_feature["aeroway"]
+
+				if aeroway == "taxiway" and auto_widen_taxiway and auto_widen_width > 0:
+					output_layer: QgsVectorLayer = processing.run("twywiden:taxiwaywidener", {
+						'INPUT': sub_vlayer.id(),
+						'BUFFER_DISTANCE':auto_widen_width / 2,
+						'BUFFER_CAP_STYLE':0,
+						'AUTO_POLY_LINESTRING':False,
+						'DISSOLVE':True,
+						'OUTPUT':'memory:'
+					})['OUTPUT']
+
+					output_layer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
+					QgsProject.instance().addMapLayer(output_layer)
 
 			# Update progress after processing each feature
 			count += 1
