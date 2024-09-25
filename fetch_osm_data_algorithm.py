@@ -126,15 +126,23 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 				name = sub_layer.split(QgsDataProvider.sublayerSeparator())[1]
 				uri = f"{feature_path}|layername={name}"
 				sub_vlayer = QgsVectorLayer(uri, name, "ogr")
+				taxiway = False
 				sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
 		
 
 				QgsProject.instance().addMapLayer(sub_vlayer)
 
-				layer_feature = sub_vlayer.getFeature(0)
-				aeroway = layer_feature["aeroway"]
+				for layer_feature in sub_vlayer.getFeatures():
+					
+					aeroway = "N/A"
 
-				if aeroway == "taxiway" and auto_widen_taxiway and auto_widen_width > 0:
+					if "aeroway" in layer_feature.fields().names():
+						aeroway = layer_feature["aeroway"]
+
+					if aeroway == "taxiway" and auto_widen_taxiway and auto_widen_width > 0:
+						taxiway = True
+				
+				if taxiway:
 					output_layer: QgsVectorLayer = processing.run("twywiden:taxiwaywidener", {
 						'INPUT': sub_vlayer.id(),
 						'BUFFER_DISTANCE':auto_widen_width / 2,
@@ -144,8 +152,9 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 						'OUTPUT':'memory:'
 					})['OUTPUT']
 
-					output_layer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
+					output_layer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
 					QgsProject.instance().addMapLayer(output_layer)
+					QgsProject.instance().removeMapLayer(sub_vlayer)
 
 			# Update progress after processing each feature
 			count += 1
