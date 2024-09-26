@@ -160,7 +160,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 						'OUTPUT':'memory:'
 					})['OUTPUT']
 
-					output_layer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
+					sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_centerline_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
+					output_layer.setName(f"{str(count+1).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
 
 					QgsProject.instance().addMapLayer(output_layer)
 
