@@ -36,7 +36,7 @@ from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFeatureSink,
-                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterNumber,
                        QgsProcessingParameterCrs,
                        QgsCoordinateReferenceSystem,
@@ -76,7 +76,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         # Parameter for the input layer
-        self.addParameter(QgsProcessingParameterVectorLayer(self.INPUT, 'Input Layer'))
+        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Layer'))
         self.addParameter(QgsProcessingParameterNumber(self.BUFFER_DISTANCE, 'Buffer Distance', defaultValue=100))
         self.addParameter(QgsProcessingParameterEnum(self.BUFFER_CAP_STYLE, 'Buffer Cap Style', options=['Round', 'Flat', 'Square'], defaultValue=0))
         self.addParameter(QgsProcessingParameterBoolean(self.AUTO_POLY_LINESTRING, 'Convert result to linestring'))
@@ -85,7 +85,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # Retrieve the input layer from parameters
-        layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
+        layer = self.parameterAsSource(parameters, self.INPUT, context)
         
         if layer is None:
             feedback.reportError('Could not load input layer!')

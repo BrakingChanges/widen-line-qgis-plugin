@@ -34,7 +34,7 @@ import processing
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
 	QgsProcessingAlgorithm, 
-	QgsProcessingParameterVectorLayer, 
+	QgsProcessingParameterFeatureSource, 
 	QgsProcessingParameterFeatureSink,
 	QgsFeatureSink,
 )
@@ -45,12 +45,12 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 	OUTPUT = 'OUTPUT'
 
 	def initAlgorithm(self, config=None):
-		self.addParameter(QgsProcessingParameterVectorLayer(self.INPUT, 'Input Polygon Layer'))
+		self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, 'Input Polygon Layer'))
 		self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT, 'Output Line Layer'))
 
 	def processAlgorithm(self, parameters, context, feedback):
 		# Retrieve the input layer
-		layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
+		layer = self.parameterAsSource(parameters, self.INPUT, context)
 		
 		if layer is None:
 			feedback.reportError('Could not load input layer!')
