@@ -25,6 +25,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 	OUTPUT_DIR = 'OUTPUT_DIR'
 	AUTO_WIDEN_TAXIWAYS = 'AUTO_WIDEN_TAXIWAY'
 	AUTO_WIDEN_TAXIWAYS_WIDTH = 'AUTO_WIDEN_TAXIWAYS_WIDTH'
+	AUTO_WIDEN_TAXIWAYS_DISSOLVE = 'AUTO_WIDEN_TAXIWAYS_DISSOLVE'
+	AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE = 'AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE'
 	AUTO_WIDENED_TAXIWAYS_LINESTRING = 'AUTO_WIDENED_TAXIWAYS_LINESTRING'
 	AUTO_POLYGON_LINESTRING = 'AUTO_POLYGON_LINESTRING'
 	
@@ -42,6 +44,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		# Input ICAO code
 		self.addParameter(QgsProcessingParameterString(self.ICAO_CODE, 'ICAO Code'))
 		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS, 'Automatically Widen Taxiways'))
+		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS_DISSOLVE, 'Automatically Dissolve widened taxiways', defaultValue=True))
+		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE, 'Keep Original Line as Centerline', defaultValue=True))
 		self.addParameter(QgsProcessingParameterNumber(self.AUTO_WIDEN_TAXIWAYS_WIDTH, 'Auto Taxiway Widen Width'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output Directory'))
 
@@ -49,8 +53,12 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		# Get ICAO code and output directory
 		icao_code = self.parameterAsString(parameters, self.ICAO_CODE, context).upper()
 		output_dir = self.parameterAsString(parameters, self.OUTPUT_DIR, context)
+
+		# AUTO WIDEN TAXIWAY SETTINGS
 		auto_widen_taxiway = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS, context)
 		auto_widen_width = self.parameterAsInt(parameters, self.AUTO_WIDEN_TAXIWAYS_WIDTH, context)
+		auto_widen_dissolve = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS_DISSOLVE, context)
+		auto_widen_keep_centerline = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE, context)
 
 		
 		# Run OSM query for airport based on ICAO code
@@ -148,13 +156,18 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 						'BUFFER_DISTANCE':auto_widen_width / 2,
 						'BUFFER_CAP_STYLE':0,
 						'AUTO_POLY_LINESTRING':False,
-						'DISSOLVE':True,
+						'DISSOLVE': auto_widen_dissolve,
 						'OUTPUT':'memory:'
 					})['OUTPUT']
 
 					output_layer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
+
 					QgsProject.instance().addMapLayer(output_layer)
-					QgsProject.instance().removeMapLayer(sub_vlayer)
+
+
+
+					if not auto_widen_keep_centerline:
+						QgsProject.instance().removeMapLayer(sub_vlayer)
 
 			# Update progress after processing each feature
 			count += 1
