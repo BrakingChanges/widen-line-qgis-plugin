@@ -145,14 +145,20 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         # Incase you needed WGS72
         auto_poly_linestring = self.parameterAsBoolean(parameters, self.AUTO_POLY_LINESTRING, context)
 
-
         if auto_poly_linestring: 
+            QgsProject.instance().addMapLayer(buffered_layer)
+
             final_layer = processing.run("twywiden:polygontosinglepart", {
-                'INPUT': buffered_layer,
+                'INPUT': buffered_layer.id(),
                 'OUTPUT':'memory:'
             })['OUTPUT']
+
+            QgsProject.instance().removeMapLayer(buffered_layer)
+
         else:
             final_layer = buffered_layer
+        
+
 
         if final_layer is None:
             feedback.reportError('Final reprojection failed!')
