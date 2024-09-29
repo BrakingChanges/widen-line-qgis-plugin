@@ -23,12 +23,16 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 	ICAO_CODE = 'ICAO_CODE'
 	OUTPUT_DIR = 'OUTPUT_DIR'
+	
 	AUTO_WIDEN_TAXIWAYS = 'AUTO_WIDEN_TAXIWAY'
 	AUTO_WIDEN_TAXIWAYS_WIDTH = 'AUTO_WIDEN_TAXIWAYS_WIDTH'
 	AUTO_WIDEN_TAXIWAYS_DISSOLVE = 'AUTO_WIDEN_TAXIWAYS_DISSOLVE'
 	AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE = 'AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE'
 	AUTO_WIDENED_TAXIWAYS_LINESTRING = 'AUTO_WIDENED_TAXIWAYS_LINESTRING'
 	AUTO_POLYGON_LINESTRING = 'AUTO_POLYGON_LINESTRING'
+
+	SPLIT_TAXIWAYS = 'SPLIT_TAXIWAYS'
+	SPLIT_TAXIWAYS_OUTPUT = 'SPLIT_TAXIWAYS_OUTPUT'
 	
 	FEATURE_TYPES = ['heliport', 'runway', 'stopway', 'helipad', 'taxiway', 'holding_position',
 					 'arresting_gear', 'apron', 'parking_position', 'gate', 'terminal', 'hangar',
@@ -47,6 +51,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS_DISSOLVE, 'Automatically Dissolve widened taxiways', defaultValue=True))
 		self.addParameter(QgsProcessingParameterBoolean(self.AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE, 'Keep Original Line as Centerline', defaultValue=True))
 		self.addParameter(QgsProcessingParameterNumber(self.AUTO_WIDEN_TAXIWAYS_WIDTH, 'Auto Taxiway Widen Width'))
+		self.addParameter(QgsProcessingParameterBoolean(self.SPLIT_TAXIWAYS, 'Split Taxiways'))
+		self.addParameter(QgsProcessingParameterFolderDestination(self.SPLIT_TAXIWAYS_OUTPUT, 'Split Taxiways Output Directory'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output Directory'))
 
 	def processAlgorithm(self, parameters, context: QgsProcessingContext, feedback: QgsProcessingFeedback):
@@ -59,6 +65,9 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		auto_widen_width = self.parameterAsInt(parameters, self.AUTO_WIDEN_TAXIWAYS_WIDTH, context)
 		auto_widen_dissolve = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS_DISSOLVE, context)
 		auto_widen_keep_centerline = self.parameterAsBoolean(parameters, self.AUTO_WIDEN_TAXIWAYS_KEEP_CENTERLINE, context)
+
+		split_taxiways = self.parameterAsBoolean(parameters, self.SPLIT_TAXIWAYS, context)
+		split_taxiways_output_folder = self.parameterAsString(parameters, self.SPLIT_TAXIWAYS_OUTPUT, context)
 
 		
 		# Run OSM query for airport based on ICAO code
@@ -137,9 +146,6 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 				taxiway = False
 				sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
 		
-
-				QgsProject.instance().addMapLayer(sub_vlayer)
-
 				for layer_feature in sub_vlayer.getFeatures():
 					
 					aeroway = "N/A"
@@ -147,28 +153,93 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 					if "aeroway" in layer_feature.fields().names():
 						aeroway = layer_feature["aeroway"]
 
-					if aeroway == "taxiway" and auto_widen_taxiway and auto_widen_width > 0:
+					if aeroway == "taxiway":
 						taxiway = True
 				
 				if taxiway:
-					output_layer: QgsVectorLayer = processing.run("twywiden:taxiwaywidener", {
-						'INPUT': sub_vlayer.id(),
-						'BUFFER_DISTANCE':auto_widen_width / 2,
-						'BUFFER_CAP_STYLE':0,
-						'AUTO_POLY_LINESTRING':False,
-						'DISSOLVE': auto_widen_dissolve,
-						'OUTPUT':'memory:'
-					})['OUTPUT']
+
+					loaded_taxiways: list[QgsVectorLayer] = []
+
+					if split_taxiways:
+
+						QgsProject.instance().addMapLayer(sub_vlayer)
+						result = processing.run("native:splitvectorlayer", {
+							'INPUT': sub_vlayer.id(),
+							'FIELD':'ref',
+							'PREFIX_FIELD':True,
+							'FILE_TYPE':0,
+							'OUTPUT': split_taxiways_output_folder
+						})
+
+						for subdir, dirs, files in os.walk(split_taxiways_output_folder):
+							for file_ in files:
+								ext = os.path.splitext(file_)[-1].lower()
+								if file_.endswith(".gpkg"):
+									layers = self.load_all_layers_from_gpkg(os.path.join(subdir, file_), feedback)
+									loaded_taxiways = loaded_taxiways + layers
+						
+						feedback.pushInfo(f'We have split the taxiways. Taxiway list {str(loaded_taxiways)} Length: {len(loaded_taxiways)}')
+
+					if auto_widen_taxiway and auto_widen_width > 0:
+						feedback.pushInfo(str(loaded_taxiways))
+						
+						if len(loaded_taxiways) == 0:
+							QgsProject.instance().addMapLayer(sub_vlayer)
+							output_layer: QgsVectorLayer = processing.run("twywiden:taxiwaywidener", {
+								'INPUT': sub_vlayer.id(),
+								'BUFFER_DISTANCE':auto_widen_width / 2,
+								'BUFFER_CAP_STYLE':0,
+								'AUTO_POLY_LINESTRING':False,
+								'DISSOLVE': auto_widen_dissolve,
+								'OUTPUT':'memory:'
+							})['OUTPUT']
+							
+							output_layer.setName(f"{str(count+1).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
+
+							if not auto_widen_keep_centerline:
+								QgsProject.instance().removeMapLayer(sub_vlayer)
+							
+							QgsProject.instance().addMapLayer(output_layer)
+						else:
+							for idx, taxiway in enumerate(loaded_taxiways):
+								feedback.pushInfo(f'Auto-widening. Selected taxiways {str(loaded_taxiways)}')
+								taxiway.setName(f"{str(count+idx+1).zfill(3)}_{feature}_centerline_{self.GEOMETRY_TYPES[taxiway.geometryType()]}")
+								QgsProject.instance().addMapLayer(taxiway)
+								output_layer: QgsVectorLayer = processing.run("twywiden:taxiwaywidener", {
+									'INPUT': taxiway,
+									'BUFFER_DISTANCE':auto_widen_width / 2,
+									'BUFFER_CAP_STYLE':0,
+									'AUTO_POLY_LINESTRING':False,
+									'DISSOLVE': auto_widen_dissolve,
+									'OUTPUT':'memory:'
+								})['OUTPUT']
+								
+								output_layer.setName(f"{str(count+idx+1).zfill(3)}_{feature}_{taxiway.name()}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
+
+								QgsProject.instance().addMapLayer(output_layer)
+
+								if not auto_widen_keep_centerline:
+									QgsProject.instance().removeMapLayer(taxiway)
+					else:
+						if len(loaded_taxiways) != 0:
+							feedback.pushInfo(f'Not Auto-widening. Selected taxiways {str(loaded_taxiways)}')
+							for idx, taxiway in enumerate(loaded_taxiways):
+								taxiway.setName(f"{str(count+idx+1).zfill(3)}_{feature}_{taxiway.name()}_centerline_{self.GEOMETRY_TYPES[taxiway.geometryType()]}")
+								QgsProject.instance().addMapLayer(taxiway)
+						else:
+							sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_centerline_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
+							QgsProject.instance().addMapLayer(sub_vlayer)
+
+								
+								
 
 					sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_centerline_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
-					output_layer.setName(f"{str(count+1).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
-
-					QgsProject.instance().addMapLayer(output_layer)
-
+				else:
+					QgsProject.instance().addMapLayer(sub_vlayer)
 
 
-					if not auto_widen_keep_centerline:
-						QgsProject.instance().removeMapLayer(sub_vlayer)
+
+
 
 			# Update progress after processing each feature
 			count += 1
@@ -181,16 +252,17 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		""" Load all layers from a given GeoPackage """
 		layer = QgsVectorLayer(gpkg_path,"test","ogr")
 		subLayers =layer.dataProvider().subLayers()
+		sub_vlayers = []
 
 		for subLayer in subLayers:
 			name = subLayer.split(QgsDataProvider.SUBLAYER_SEPARATOR)[1]
 			uri = "%s|layername=%s" % (gpkg_path, name,)
 			# Create layer
 			sub_vlayer = QgsVectorLayer(uri, name, 'ogr')
-			# Add layer to map
-			QgsProject.instance().addMapLayer(sub_vlayer)
+			sub_vlayers.append(sub_vlayer)
+				
+		return sub_vlayers
 			
-	
 	def name(self):
 		return 'fetchosmdata'
 
