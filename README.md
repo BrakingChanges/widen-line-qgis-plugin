@@ -1,4 +1,4 @@
-# AerodromeUtilities Dev Edition!
+# AerodromeUtilities
 
 May or May not crash your QGis!
 
