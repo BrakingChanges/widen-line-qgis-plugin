@@ -1,6 +1,6 @@
 # TaxiwayWidener(AerodromeUtilities)
 
-TaxiwayWidener, now AerodromeUtilities is a simple plugin helping in fetching OSM data for airports, widening taxiways and converting polygons to linestring. **PLEASE NOTE: This plugin is quite incomplete :) so except many bugs**
+AerodromeUtilities is a simple plugin helping in fetching OSM data for airports, widening taxiways and converting polygons to linestring. **PLEASE NOTE: This plugin is quite incomplete :) so except many bugs**
 
 ## Fetching Airport OSM Data
 ![Fetching OSM Data](osmfetcher.png)
@@ -20,13 +20,7 @@ Options
 - Output Layer - Saves the output layer to a file which is reccommended to prevent losing any layer
 
 ### Fixing the CRS
-After running the algorithm, you will not see any layer showing up. This is because, running the algorithm will remove the CRS status from the project from some reason, causing all new layers to not show up.
-
-To fix this, click the Project CRS button(highlighted green below) and a prompt will show up
-![Project CRS Button](image-1.png)
-
-In this window, it should say that there is no CRS selected, uncheck that box then select WGS 84. After that, you can click Ok, to set the new project CRS.
-![Setting Project CRS](image-2.png)
+No CRS fix needed!
 
 Then taxiways should show up as configured!
 ![Project CRS Done](image-3.png)
