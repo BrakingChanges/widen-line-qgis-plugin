@@ -218,7 +218,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 					if split_taxiways:
 						for ref in discovered_taxiway_ref_codes:
-							sub_vlayer.selectByExpression(f'ref="{ref}"', QgsVectorLayer.SetSelection)
+							sub_vlayer.selectByExpression(f'"ref"=\'{ref}\'', QgsVectorLayer.SetSelection)
 							ref_layer = sub_vlayer.materialize(QgsFeatureRequest().setFilterFids(sub_vlayer.selectedFeatureIds()))
 							save_options = QgsVectorFileWriter.SaveVectorOptions()
 							transform_context = QgsProject.instance().transformContext()
