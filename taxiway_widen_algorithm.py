@@ -99,16 +99,14 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
         # Calculate the UTM zone
         longitude = centroid.x()
-        utm_zone = int((longitude + 180) / 6) + 1
-
-        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4322'))
+        # utm_zone = int((longitude + 180) / 6) + 1
 
 
         # Determine the hemisphere (Northern/Southern)
-        hemisphere = '322' if centroid.y() >= 0 else '323'  # EPSG:326xx for Northern, EPSG:327xx for Southern
-        epsg_code = int(f'{hemisphere}{utm_zone}')
+        # hemisphere = '322' if centroid.y() >= 0 else '323'  # EPSG:326xx for Northern, EPSG:327xx for Southern
+        epsg_code = 3857
 
-        feedback.pushInfo(f'Calculated UTM zone: {utm_zone}, EPSG: {epsg_code}')
+        # feedback.pushInfo(f'Calculated UTM zone: {utm_zone}, EPSG: {epsg_code}')
         layer_source = self.parameterAsString(parameters, self.INPUT, context)
 
         # Reproject to the calculated UTM CRS
@@ -142,21 +140,25 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         # Reproject back to the original CRS
         feedback.pushInfo('Reprojecting back to the original CRS...')
         
-        # Incase you needed WGS72
+        QgsProject.instance().addMapLayer(buffered_layer)
+
+        repr_layer = processing.run("qgis:reprojectlayer", {
+            'INPUT': buffered_layer.id(),
+            'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:4326'),
+            'OUTPUT': 'memory:'
+        }, context=context, feedback=feedback)['OUTPUT']
+
+        QgsProject.instance().removeMapLayer(buffered_layer)
+
         auto_poly_linestring = self.parameterAsBoolean(parameters, self.AUTO_POLY_LINESTRING, context)
 
         if auto_poly_linestring: 
-            QgsProject.instance().addMapLayer(buffered_layer)
-
             final_layer = processing.run("aerodromeutilities:polygontosinglepart", {
-                'INPUT': buffered_layer.id(),
+                'INPUT': repr_layer,
                 'OUTPUT':'memory:'
             })['OUTPUT']
-
-            QgsProject.instance().removeMapLayer(buffered_layer)
-
         else:
-            final_layer = buffered_layer
+            final_layer = repr_layer
         
 
 
@@ -171,7 +173,6 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         for feature in final_layer.getFeatures():
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
 
-        QgsProject.instance().setCrs(QgsCoordinateReferenceSystem('ESPG:4326'))
         feedback.pushInfo('Algorithm completed successfully.')
         return {self.OUTPUT: dest_id}
 

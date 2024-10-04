@@ -64,7 +64,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 	FEATURE_TYPES = [
 		'heliport',
-		'grass'
+		'grass',
 		'apron',
 		'taxiway',
 		'parking_position',
@@ -248,6 +248,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 						})['OUTPUT']
 						
 						output_layer.setName(f"{str(count+1).zfill(3)}_{feature}_{self.GEOMETRY_TYPES[output_layer.geometryType()]}")
+						QgsProject.instance().addMapLayer(output_layer)
 
 						if not auto_widen_keep_centerline:
 							QgsProject.instance().removeMapLayer(sub_vlayer)
