@@ -35,5 +35,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .taxiway_widen import TaxiwayWidenerPlugin
-    return TaxiwayWidenerPlugin()
+    from .aerodrome_utilities import AerodromeUtilitiesPlugin
+    return AerodromeUtilitiesPlugin()
