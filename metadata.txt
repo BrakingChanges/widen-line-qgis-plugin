@@ -3,17 +3,17 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Taxiway Widener
+name=Aerodrome Utilities
 qgisMinimumVersion=3.0
-description=Widens taxiways fetched from OSM
-version=0.1
+description=Fetches OSM Data and processes it for aerodroms with various algorithms
+version=0.0.1
 author=Aiden Omondi
 email=helpertech83@gmail.com
 
-about=Widens taxiways from OSM Data
+about=Fetches OSM Data and processes it for aerodroms with various algorithms
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/BrakingChanges/widen-line-qgis-plugin/issues
+repository=https://github.com/BrakingChanges/widen-line-qgis-plugin
 # End of mandatory metadata
 
 # Recommended items:
@@ -25,11 +25,11 @@ hasProcessingProvider=yes
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
-category=Analysis
+homepage=https://github.com/BrakingChanges/widen-line-qgis-plugin
+category=Vector
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
@@ -38,9 +38,6 @@ deprecated=False
 # (or upgraded) can be specified.
 # Check the documentation for more information.
 # plugin_dependencies=
-
-Category of the plugin: Raster, Vector, Database or Web
-# category=
 
 # If the plugin can run on QGIS Server.
 server=False
