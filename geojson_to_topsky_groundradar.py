@@ -84,14 +84,17 @@ AIRPORT:
 		for (dirpath, _dirname, files) in os.walk(search_dir):
 			for name in files:
 				file_name, ext = os.path.splitext(os.path.join(dirpath, name))
+				if 'STAND' in name:
+					continue
 				if ext == '.geojson':
 					with open(os.path.join(dirpath, name), 'r') as source:
 						data = json.load(source)
-						content += self.ts_header.replace('LAYER:', f'LAYER:{int(name.split("_")[0])}').replace('MAP:', f'MAP:{icao} {'_'.join(name.split("_")[1:])}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
-						for feature in data["features"]:
+						content += self.ts_header.replace('LAYER:', f'LAYER:{int(name.split("_")[0])}').replace('MAP:', f'MAP:{icao} {' '.join(name.split("_")[1:]).upper()}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
+						for i, feature in enumerate(data["features"]):
 							coords = []
-							if 'POLIGON' in name:
-								content += 'COORDLINE\n'
+							if any(n in name for n in ['POLIGON', 'POLY']):
+								if i != 0:
+									content += 'COORDLINE\n'
 								for coordinate in feature["geometry"]["coordinates"]:
 									coords.append(f'COORD:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}')
 							elif 'TEXT' in name:
@@ -125,7 +128,7 @@ AIRPORT:
 							content += f'\n// {name}\nCOLOR:TWY\nCOORDTYPE:OTHER:REGION\n'
 						for feature in data["features"]:
 							coords = []
-							if 'POLIGON' in name:
+							if any(n in name for n in ['POLIGON', 'POLY']):
 								for coordinate in feature["geometry"]["coordinates"]:
 									coords.append(f'COORD:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}')
 							elif 'TEXT' in name:
@@ -141,33 +144,44 @@ AIRPORT:
 		with open(out_path, 'w') as dest:
 			dest.write(content)
 
-	def convert_geojson_to_stands(self, search_dir, out_path, icao):
+	def convert_geojson_to_stands(self, search_dir, out_path, icao, gr_maps_path):
 		content = ''
+		content_grmaps = ''
 		for (dirpath, _dirname, files) in os.walk(search_dir):
 			for name in files:
 				file_name, ext = os.path.splitext(os.path.join(dirpath, name))
 				if ext == '.geojson' and 'STAND' in name:
 					with open(os.path.join(dirpath, name), 'r') as source:
 						data = json.load(source)
-						content += self.gr_header.replace('MAP:', f'MAP:{icao} {'_'.join(name.split("_")[1:])}')
+						content_grmaps += self.gr_header.replace('MAP:', f'MAP:{icao} TWY LABELS').replace('FOLDER:', f'FOLDER:{icao}').replace("AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:TWY", "COLOR:RMK") + '\n'
 						for feature in data["features"]:
+							content += f'// Stand {feature["properties"]["STAND"]}\n'
 							coordinate = feature["geometry"]["coordinates"]
-							content += f'STAND:FAGC:{feature["properties"]["STAND"]}:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}:30\n'
+							content += f'STAND:{icao}:{feature["properties"]["STAND"]}:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}:30\n'
+							content += f'WTC:{feature["properties"]["WTC"]}\n' if feature["properties"]["WTC"] != None else ''
+							content += f'USE:{feature["properties"]["USE"]}\n' if feature["properties"]["USE"] != None else ''
+							content += 'AREA\n\n' if feature["properties"]["AREA"] else ''
+
+							content_grmaps += f'TEXT:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}:{feature["properties"]["STAND"]}\n'
 
 		with open(out_path, 'w') as dest:
 			dest.write(content)
+		
+		with open(gr_maps_path, 'a') as dest:
+			dest.write(content_grmaps)
 
 	def processAlgorithm(self, parameters, context, feedback):
 		search_dir = self.parameterAsString(parameters, self.SEARCH_DIR, context)
 		out_dir = self.parameterAsString(parameters, self.OUT_DIR, context)
 		multi_map = self.parameterAsBool(parameters, self.MULTI_MAP, context)
 		icao = self.parameterAsString(parameters, self.ICAO, context)
+		ground_radar_path = os.path.join(out_dir, "GroundRadar.txt")
 
 
 		# Run all conversion functions
 		self.convert_geojson_to_topsky(search_dir, os.path.join(out_dir, "TopSkyMaps.txt"), icao)
-		self.convert_geojson_to_groundradar(search_dir, os.path.join(out_dir, "GroundRadar.txt"), multi_map, icao)
-		self.convert_geojson_to_stands(search_dir, os.path.join(out_dir, "Stands.txt"), icao)
+		self.convert_geojson_to_groundradar(search_dir,ground_radar_path, multi_map, icao)
+		self.convert_geojson_to_stands(search_dir, os.path.join(out_dir, "Stands.txt"), icao, ground_radar_path)
 
 		return {}
 
