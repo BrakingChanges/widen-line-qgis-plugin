@@ -123,13 +123,15 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         
         # Buffer the reprojected layer
         feedback.pushInfo('Buffering the reprojected layer...')
-        buffer_distance = self.parameterAsDouble(parameters, self.BUFFER_DISTANCE, context)
+        buffer_distance = self.parameterAsDouble(parameters, self.BUFFER_DISTANCE, context) / 2
         dissolve = self.parameterAsBoolean(parameters, self.DISSOLVE, context)
+        cap_style = self.parameterAsInt(parameters, self.BUFFER_CAP_STYLE, context)
 
         buffered_layer: QgsVectorLayer = processing.run("qgis:buffer", {
             'INPUT': reprojected_layer,
             'DISTANCE': buffer_distance,
             'DISSOLVE': dissolve,
+            'END_CAP_STYLE': cap_style,
             'OUTPUT': 'TEMPORARY_OUTPUT'
         }, context=context, feedback=feedback)['OUTPUT']
         
@@ -191,7 +193,7 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return 'Widen Taxiway'
 
     def group(self):
         """

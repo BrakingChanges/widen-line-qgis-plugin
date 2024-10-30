@@ -292,7 +292,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		return 'fetchosmdata'
 
 	def displayName(self):
-		return self.tr(self.name())
+		return 'Fetch OSM Data'
 
 	def group(self):
 		return self.tr(self.groupId())
