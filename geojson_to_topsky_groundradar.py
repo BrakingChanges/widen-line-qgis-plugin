@@ -89,7 +89,7 @@ AIRPORT:
 				if ext == '.geojson':
 					with open(os.path.join(dirpath, name), 'r') as source:
 						data = json.load(source)
-						content += self.ts_header.replace('LAYER:', f'LAYER:{int(name.split("_")[0])}').replace('MAP:', f'MAP:{icao} {' '.join(name.split("_")[1:]).upper()}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
+						content += self.ts_header.replace('LAYER:', f'LAYER:{int(name.split("_")[0])}').replace('MAP:', f'MAP:{icao} {' '.join(file_name.split("_")[1:-1]).upper()}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
 						for i, feature in enumerate(data["features"]):
 							coords = []
 							if any(n in name for n in ['POLIGON', 'POLY']):
@@ -123,9 +123,10 @@ AIRPORT:
 					with open(os.path.join(dirpath, name), 'r') as source:
 						data = json.load(source)
 						if multi_map:
-							content += self.gr_header.replace('MAP:', f'MAP:{icao} {'_'.join(name.split("_")[1:])}').replace("FOLDER:", f"FOLDER:{icao}").replace
+							content += self.gr_header.replace('MAP:', f'MAP:{icao} {'_'.join(name.split("_")[1:])}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
 						else:
-							content += f'\n// {name}\nCOLOR:TWY\nCOORDTYPE:OTHER:REGION\n'
+							if 'STAND' not in file_name:
+								content += f'\n// {' '.join(file_name.split('_')[1:-1]).capitalize()}\nCOLOR:TWY\nCOORDTYPE:OTHER:REGION\n'
 						for feature in data["features"]:
 							coords = []
 							if any(n in name for n in ['POLIGON', 'POLY']):
@@ -145,7 +146,7 @@ AIRPORT:
 			dest.write(content)
 
 	def convert_geojson_to_stands(self, search_dir, out_path, icao, gr_maps_path):
-		content = ''
+		content = f'// {icao} Stands'
 		content_grmaps = ''
 		for (dirpath, _dirname, files) in os.walk(search_dir):
 			for name in files:
