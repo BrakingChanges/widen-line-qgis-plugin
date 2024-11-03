@@ -35,6 +35,7 @@ from .taxiway_widen_algorithm import TaxiwayWidenerAlgorithm
 from .polygon_to_singlepart_algorithm import PolygonToSinglePartLinesAlgorithm
 from .fetch_osm_data_algorithm import FetchOSMDataAlgorithm
 from .geojson_to_topsky_groundradar import GeojsonToTopskyGroundradar
+from .split_taxiway_algorithm import SplitTaxiwayAlgorithm
 
 class AerodromeUtilitiesProvider(QgsProcessingProvider):
 
@@ -59,6 +60,7 @@ class AerodromeUtilitiesProvider(QgsProcessingProvider):
         self.addAlgorithm(PolygonToSinglePartLinesAlgorithm())
         self.addAlgorithm(FetchOSMDataAlgorithm())
         self.addAlgorithm(GeojsonToTopskyGroundradar())
+        self.addAlgorithm(SplitTaxiwayAlgorithm())
 
     def id(self):
         """
