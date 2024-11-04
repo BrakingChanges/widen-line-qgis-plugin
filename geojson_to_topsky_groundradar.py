@@ -106,7 +106,7 @@ AIRPORT:
 									lon2, lat2 = feature["geometry"]["coordinates"][i + 1]
 									coords.append(f"LINE:{self.decimal_degrees_dms(lat1, lon1)}:{self.decimal_degrees_dms(lat2, lon2)}")
 							content += '\n'.join(coords)
-							if 'POLIGON' in name:
+							if any(n in name for n in ['POLIGON', 'POLY']):
 								content += '\nCOORDPOLY:100\n'
 							else:
 								content += '\n'
@@ -141,6 +141,8 @@ AIRPORT:
 									lon2, lat2 = feature["geometry"]["coordinates"][i + 1]
 									coords.append(f"LINE:{self.decimal_degrees_dms(lat1, lon1)}:{self.decimal_degrees_dms(lat2, lon2)}")
 							content += '\n'.join(coords) + '\n'
+							if any(n in name for n in ['POLIGON', 'POLY']):
+								content += 'COORDTYPE:OTHER:REGION\n'
 
 		with open(out_path, 'w') as dest:
 			dest.write(content)
