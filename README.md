@@ -1,4 +1,4 @@
-# AerodromeUtilities Dev Edition!
+# AerodromeUtilities
 
 May or May not crash your QGis!
 
@@ -33,3 +33,6 @@ Then taxiways should show up as configured!
 ![Project CRS Done](docs/images/image-3.png)
 
 **NOTE: This is a very basic working ground layout, you can check all the features of the plugin on the [wiki](https://github.com/BrakingChanges/widen-line-qgis-plugin/wiki)**
+
+## Contributing
+We are open to contributions! To contribute simply fork the repo, create a branch for the feature/fix you want to add, add your changes, and create a detailed isssue with a pull request linking the issue.
