@@ -22,7 +22,7 @@ MAP:
 FOLDER:
 LAYER:
 ACTIVE:1
-COLOR:TWY    
+COLOR:TWY
 '''
 
 	gr_header = '''MAP:
