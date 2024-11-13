@@ -161,8 +161,8 @@ AIRPORT:
 							content += f'// Stand {feature["properties"]["STAND"]}\n'
 							coordinate = feature["geometry"]["coordinates"]
 							content += f'STAND:{icao}:{feature["properties"]["STAND"]}:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}:30\n'
-							content += f'WTC:{feature["properties"]["WTC"]}\n' if feature["properties"]["WTC"] != None else ''
-							content += f'USE:{feature["properties"]["USE"]}\n' if feature["properties"]["USE"] != None else ''
+							content += f'WTC:{feature["properties"]["WTC"]}\n' if feature["properties"]["WTC"] is not None else ''
+							content += f'USE:{feature["properties"]["USE"]}\n' if feature["properties"]["USE"] is not None else ''
 							content += 'AREA\n\n' if feature["properties"]["AREA"] else ''
 
 							content_grmaps += f'TEXT:{self.decimal_degrees_dms(coordinate[1], coordinate[0])}:{feature["properties"]["STAND"]}\n'

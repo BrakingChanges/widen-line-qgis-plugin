@@ -28,8 +28,6 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
 	QgsProcessingAlgorithm, 
 	QgsProcessingParameterString, 
-	QgsProcessingParameterFileDestination, 
-	QgsProcessingParameterFeatureSink,
 	QgsProcessingParameterBoolean,
 	QgsProcessingFeedback, 
 	QgsProcessingContext, 
@@ -41,10 +39,8 @@ from qgis.core import (
 	QgsProcessingParameterNumber,
 	QgsWkbTypes,
 	QgsFeatureRequest,
-	QgsVectorFileWriter
 )
 from qgis.core import QgsProcessingParameterFolderDestination
-import time
 
 class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
@@ -120,7 +116,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		
 		# Run OSM query for airport based on ICAO code
 		feedback.pushInfo(f"Fetching OSM data for {icao_code}...")
-		feature_path = os.path.join(output_dir, f'001_aeroway_aerodrome.gpkg')
+		feature_path = os.path.join(output_dir, '001_aeroway_aerodrome.gpkg')
 		ad_layer_initial = processing.run("quickosm:downloadosmdatanotspatialquery", {
 			'KEY': 'icao',
 			'VALUE': icao_code,
@@ -150,13 +146,12 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		ad_extent = ad_multipoly.extent()
 
 		count = 2
-		total_features = len(self.FEATURE_TYPES)
 		ref_layers = []
 		
 
 		for feature in self.FEATURE_TYPES:
 			feature_path = os.path.join(output_dir, f'{str(count).zfill(3)}_{feature}.gpkg')
-			feature_initial = processing.run("quickosm:downloadosmdataextentquery", {
+			processing.run("quickosm:downloadosmdataextentquery", {
 				'KEY': 'aeroway',
 				'VALUE': feature,
 				'EXTENT': ad_extent,
@@ -211,18 +206,13 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 							discovered_taxiway_ref_codes.append(ref)
 				
 				if taxiway:
-
-					loaded_taxiways: list[QgsVectorLayer] = []
-					layer_paths = []
-
-
 					if split_taxiways:
 						for ref in discovered_taxiway_ref_codes:
 							sub_vlayer.selectByExpression(f'"ref"=\'{ref}\'', QgsVectorLayer.SetSelection)
 							ref_layer = sub_vlayer.materialize(QgsFeatureRequest().setFilterFids(sub_vlayer.selectedFeatureIds()))
 							save_options = QgsVectorFileWriter.SaveVectorOptions()
 							transform_context = QgsProject.instance().transformContext()
-							error = QgsVectorFileWriter.writeAsVectorFormatV3(
+							QgsVectorFileWriter.writeAsVectorFormatV3(
 								ref_layer,
 								os.path.join(split_taxiways_output_folder, ref_layer.name()),
 								transform_context,
