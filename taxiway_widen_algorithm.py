@@ -32,13 +32,12 @@ __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis import processing
-from qgis.core import (QgsProcessing,
+from qgis.core import (
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterNumber,
-                       QgsProcessingParameterCrs,
                        QgsCoordinateReferenceSystem,
                        QgsVectorLayer,
                        QgsProcessingParameterEnum,
@@ -94,11 +93,8 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo(f'Input layer loaded: {layer.sourceName()}')
 
         # Calculate the centroid of the layer's extent
-        extent = layer.sourceExtent()
-        centroid = extent.center()
 
         # Calculate the UTM zone
-        longitude = centroid.x()
         # utm_zone = int((longitude + 180) / 6) + 1
 
 

@@ -22,8 +22,6 @@
  ***************************************************************************/
 """
 
-import os
-import processing
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
 	QgsProcessingAlgorithm,
