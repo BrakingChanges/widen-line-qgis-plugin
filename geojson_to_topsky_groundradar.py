@@ -6,7 +6,9 @@ from qgis.core import (
 	QgsProcessingParameterBoolean,
 	QgsProcessingParameterString,
 	QgsVectorLayer,
-	QgsWkbTypes
+	QgsWkbTypes,
+	QgsGeometry,
+	QgsMessageLog
 )
 
 from qgis.utils import iface
@@ -96,14 +98,18 @@ AIRPORT:
 
 				if geom.type() == QgsWkbTypes.PolygonGeometry:
 					if geom.isMultipart():
-						for poly in geom.asMultiPolygon()[0]:
-							for pt in poly:
-								coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
-					else:
-						for pt in geom.asPolygon()[0]:
-							coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+						for poly in geom.asMultiPolygon():
+							for ring in poly:
+								for pt in ring:
+									coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+						content += '\n'.join(coords) + '\nCOORDPOLY:100\n'
 
-					content += '\n'.join(coords) + '\nCOORDPOLY:100\n'
+					else:
+						for ring in geom.asPolygon():
+							for pt in ring:
+								coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+
+						content += '\n'.join(coords) + '\nCOORDPOLY:100\n'
 
 				elif geom.type() == QgsWkbTypes.LineGeometry:
 					points = geom.asPolyline()
@@ -133,7 +139,7 @@ AIRPORT:
 			if not isinstance(layer, QgsVectorLayer):
 				continue
 
-			layer_name = layer.name().upper()
+			layer_name: str = layer.name().upper()
 			if multi_map:
 				content += self.gr_header.replace('MAP:', f'MAP:{icao} {layer_name}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
 			else:
@@ -142,17 +148,20 @@ AIRPORT:
 			
 			for feature in layer.getFeatures():
 				coords = []
-				geom = feature.geometry()
+				geom: QgsGeometry = feature.geometry()
 				
 				if geom.type() == QgsWkbTypes.PolygonGeometry:
 					if geom.isMultipart():
-						for poly in geom.asMultiPolygon()[0]:
-							for pt in poly:
-								coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+						for poly in geom.asMultiPolygon():
+							for ring in poly:
+								for pt in ring:
+									coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+							content += '\n'.join(coords) + '\nCOORDTYPE:OTHER:REGION\n'
 					else:
-						for pt in geom.asPolygon()[0]:
-							coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
-					content += '\n'.join(coords) + '\nCOORDTYPE:OTHER:REGION\n'
+						for ring in geom.asPolygon():
+							for pt in ring:
+								coords.append(f'COORD:{self.decimal_degrees_dms(pt.y(), pt.x())}')
+						content += '\n'.join(coords) + '\nCOORDTYPE:OTHER:REGION\n'
 
 				elif geom.type() == QgsWkbTypes.LineGeometry:
 					points = geom.asPolyline()
