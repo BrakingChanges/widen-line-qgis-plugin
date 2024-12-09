@@ -8,7 +8,6 @@ from qgis.core import (
 	QgsVectorLayer,
 	QgsWkbTypes,
 	QgsGeometry,
-	QgsMessageLog
 )
 
 from qgis.utils import iface
