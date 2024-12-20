@@ -72,7 +72,7 @@ AIRPORT:
 		lon_minutes_dec = (abs(decimal_lon) - lon_degrees) * 60
 		lon_minutes = math.floor(lon_minutes_dec)
 		lon_seconds = math.floor((lon_minutes_dec - lon_minutes) * 60 * 1000) / 1000
-
+	
 		return f"{'S' if decimal_lat < 0 else 'N'}{str(lat_degrees).zfill(3)}.{str(lat_minutes).zfill(2)}.{lat_seconds:.3f}:{'W' if decimal_lon < 0 else 'E'}{str(lon_degrees).zfill(3)}.{lon_minutes:02}.{lon_seconds:.3f}"
 
 	def convert_geojson_to_topsky(self, out_path, icao):
