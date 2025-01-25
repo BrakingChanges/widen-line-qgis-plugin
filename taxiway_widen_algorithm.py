@@ -42,8 +42,10 @@ from qgis.core import (
                        QgsVectorLayer,
                        QgsProcessingParameterEnum,
                        QgsProcessingParameterBoolean,
-                       QgsProject
+                       QgsProject,
+                       QgsProcessingUtils
                        )
+from qgis.PyQt.QtGui import QColor
 
 
 class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
@@ -104,6 +106,16 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
 
         # feedback.pushInfo(f'Calculated UTM zone: {utm_zone}, EPSG: {epsg_code}')
         layer_source = self.parameterAsString(parameters, self.INPUT, context)
+        map_layer = QgsProcessingUtils.mapLayerFromString(layer_source, context)
+        color = None
+        ts_color = None
+        gr_color = None
+
+        if map_layer:
+            color = map_layer.customProperty('color', None)
+            ts_color = map_layer.customProperty('ts_color', None)
+            gr_color = map_layer.customProperty('gr_color', None)
+
 
         # Reproject to the calculated UTM CRS
         feedback.pushInfo('Reprojecting to calculated UTM CRS...')
@@ -170,6 +182,17 @@ class TaxiwayWidenerAlgorithm(QgsProcessingAlgorithm):
         
         for feature in final_layer.getFeatures():
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
+
+
+        output_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
+
+        if output_layer and color:
+            output_layer.setCustomProperty('color', color)
+            output_layer.setCustomProperty('ts_color', ts_color)
+            output_layer.setCustomProperty('gr_color', gr_color)
+            color_comp = color.split(",")
+            color_ints = list(map(int, color_comp))
+            output_layer.renderer().symbol().setColor(QColor().fromRgb(color_ints[0], color_ints[1], color_ints[2]))
 
         feedback.pushInfo('Algorithm completed successfully.')
         return {self.OUTPUT: dest_id}
