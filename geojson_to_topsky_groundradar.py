@@ -25,13 +25,13 @@ MAP:
 FOLDER:
 LAYER:
 ACTIVE:1
-COLOR:TWY
+COLOR:
 '''
 
 	gr_header = '''MAP:
 FOLDER:
 ACTIVE:1
-COLOR:TWY
+COLOR:
 AIRPORT:
 '''
 
@@ -85,10 +85,12 @@ AIRPORT:
 			if 'STAND' in layer.name().upper():
 				continue
 
+			ts_color = layer.customProperty('ts_color', None)
+
 			content += self.ts_header.replace('LAYER:', f'LAYER:{layer.id()}').replace(
 				'MAP:', f'MAP:{icao} {layer.name().upper()}').replace(
 				"FOLDER:", f"FOLDER:{icao}").replace(
-				"AIRPORT:", f"AIRPORT:{icao}")
+				"AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:", f"COLOR:{ts_color if ts_color else 'TWY'}")
 
 			for feature in layer.getFeatures():
 				geom = feature.geometry()
@@ -138,7 +140,8 @@ AIRPORT:
 				content += self.gr_header.replace('MAP:', f'MAP:{icao} {layer_name}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
 			else:
 				if 'STAND' not in layer_name:
-					content += f'\n// {layer_name}\nCOLOR:TWY\nCOORDTYPE:OTHER:REGION\n'
+					gr_color = layer.customProperty('gr_color', None)
+					content += f'\n// {layer_name}\nCOLOR:{gr_color if gr_color else 'TWY'}\nCOORDTYPE:OTHER:REGION\n'
 			
 			for feature in layer.getFeatures():
 				coords = []
