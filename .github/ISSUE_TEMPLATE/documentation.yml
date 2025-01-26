@@ -10,7 +10,7 @@ body:
   - type: markdown
     attributes:
       value: |
-      Thank you for suggesting a documentation improvement!
+        Thank you for suggesting a documentation improvement!
   - type: input
     id: doc-area
     attributes:
