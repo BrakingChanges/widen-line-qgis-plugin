@@ -1,5 +1,5 @@
 name: Feature request
-about: Suggest an idea to improve the plugin
+description: Suggest an idea to improve the plugin
 title: "[FEAT]: "
 labels: ['enhancement']
 assignees:
