@@ -1,0 +1,37 @@
+name: Bug report
+about: Create a report to help us improve
+title: "[BUG]: "
+labels: ['bug']
+assignees:
+  - BrakingChanges
+body:
+  - type: markdown
+    attributes:
+      value: |
+      Thank you for reporting a bug!
+  - type: input
+    id: bug-summary
+    attributes:
+      label: Bug Summary
+      description: A clear and concise description of what the bug is.
+      placeholder: I found a bug when...
+    validations:
+      required: true
+  - type: textarea
+    id: bug-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Describe the steps to reproduce the bug.
+      placeholder: 1. Go to '...'
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.

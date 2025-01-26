@@ -1,0 +1,37 @@
+name: Documentation
+about: Improve our Docs
+title: "[DOC]: "
+labels: ['documentation']
+assignees:
+  - BrakingChanges
+
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+      Thank you for suggesting a documentation improvement!
+  - type: input
+    id: doc-area
+    attributes:
+      label: Documentation Area
+      description: What part of the documentation would you like to improve?
+      placeholder: Installation, Configuration, Usage, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: doc-details
+    attributes:
+      label: Documentation Details
+      description: A clear and concise description of what the documentation is.
+      placeholder: I found a mistake when...
+    validations:
+      required: true
+  - type: input
+    id: doc-link
+    attributes:
+      label: Documentation Link
+      description: Where would you want the updated documentation to be?
+      placeholder: https://github.com/BrakingChanges/widen-line-qgis-plugin/wiki
+    validations:
+      required: true
