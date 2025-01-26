@@ -4,7 +4,6 @@ from qgis.core import (
 	QgsProcessingParameterColor,
 	QgsProcessingParameterString,
 	QgsProcessingParameterFeatureSink,
-	QgsProcessingParameterFile,
 	QgsProcessingContext,
 	QgsProcessingFeedback,
 	QgsProcessingUtils
