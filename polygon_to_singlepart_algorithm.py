@@ -31,13 +31,15 @@ __copyright__ = '(C) 2024 by Aiden Omondi'
 __revision__ = '$Format:%H$'
 
 import processing
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
 	QgsProcessingAlgorithm, 
 	QgsProcessingParameterFeatureSource, 
 	QgsProcessingParameterFeatureSink,
 	QgsFeatureSink,
 	QgsProcessingUtils,
+	QgsVectorLayer,
+	QgsField,
 )
 from qgis.PyQt.QtGui import QColor
 
@@ -87,7 +89,7 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 		
 		# Convert multipart lines to single parts
 		feedback.pushInfo('Converting multipart geometries to single parts...')
-		single_parts_layer = processing.run("qgis:multiparttosingleparts", {
+		single_parts_layer: QgsVectorLayer | None = processing.run("qgis:multiparttosingleparts", {
 			'INPUT': lines_layer,
 			'OUTPUT': 'memory:'
 		}, context=context, feedback=feedback)['OUTPUT']
@@ -95,6 +97,24 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 		if single_parts_layer is None:
 			feedback.reportError('Multipart to single-part conversion failed!')
 			return {}
+		
+		single_parts_layer.startEditing()
+
+		# Check if 'fid' exists, if not, add it
+		fid_idx = single_parts_layer.fields().indexFromName("fid")
+		if fid_idx == -1:
+			single_parts_layer.dataProvider().addAttributes([QgsField("fid", QVariant.Int)])
+			single_parts_layer.updateFields()
+			fid_idx = single_parts_layer.fields().indexFromName("fid")
+
+		# Assign new unique fids
+		new_fid = 1
+		for feature in single_parts_layer.getFeatures():
+			feature.setAttribute(fid_idx, new_fid)  # Assign new fid
+			single_parts_layer.updateFeature(feature)  # Update the feature in the layer
+			new_fid += 1
+
+		single_parts_layer.commitChanges()
 
 		# Output the final single-part line layer
 		(sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,

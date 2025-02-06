@@ -42,6 +42,7 @@ class SplitTaxiwayAlgorithm(QgsProcessingAlgorithm):
 
 		discovered_taxiway_ref_codes = []
 		ref_layers = []
+		taxiway = False
 		
 		for layer_feature in layer.getFeatures():
 			
