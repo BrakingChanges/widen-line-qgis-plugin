@@ -37,9 +37,12 @@ from qgis.core import (
 	QgsProcessingParameterFeatureSource, 
 	QgsProcessingParameterFeatureSink,
 	QgsFeatureSink,
+	QgsProcessingUtils,
 	QgsVectorLayer,
 	QgsField,
 )
+from qgis.PyQt.QtGui import QColor
+
 
 class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 
@@ -53,6 +56,18 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 	def processAlgorithm(self, parameters, context, feedback):
 		# Retrieve the input layer
 		layer = self.parameterAsSource(parameters, self.INPUT, context)
+		layer_source = self.parameterAsString(parameters, self.INPUT, context)
+		map_layer = QgsProcessingUtils.mapLayerFromString(
+			layer_source, context)
+		
+		color = None
+		ts_color = None
+		gr_color = None
+
+		if map_layer:
+			color = map_layer.customProperty('color', None)
+			ts_color = map_layer.customProperty('ts_color', None)
+			gr_color = map_layer.customProperty('gr_color', None)
 		
 		if layer is None:
 			feedback.reportError('Could not load input layer!')
@@ -107,6 +122,17 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 
 		for feature in single_parts_layer.getFeatures():
 			sink.addFeature(feature, QgsFeatureSink.FastInsert)
+
+		output_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
+
+		if output_layer and color:
+			output_layer.setCustomProperty('color', color)
+			output_layer.setCustomProperty('ts_color', ts_color)
+			output_layer.setCustomProperty('gr_color', gr_color)
+			color_comp = color.split(",")
+			color_ints = list(map(int, color_comp))
+			output_layer.renderer().symbol().setColor(
+				QColor().fromRgb(color_ints[0], color_ints[1], color_ints[2]))
 
 		feedback.pushInfo('Algorithm completed successfully.')
 		return {self.OUTPUT: dest_id}
