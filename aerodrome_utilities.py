@@ -35,6 +35,7 @@ import sys
 import inspect
 
 from qgis.core import QgsApplication
+from qgis.PyQt.QtWidgets import QAction
 from .aerodrome_utilities_provider import AerodromeUtilitiesProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
@@ -45,8 +46,9 @@ if cmd_folder not in sys.path:
 
 class AerodromeUtilitiesPlugin(object):
 
-    def __init__(self):
+    def __init__(self, iface):
         self.provider = None
+        self.iface = iface
 
     def initProcessing(self):
         """Init Processing provider for QGIS >= 3.8."""
@@ -55,6 +57,9 @@ class AerodromeUtilitiesPlugin(object):
 
     def initGui(self):
         self.initProcessing()
+        self.debug_action = QAction("Toggle Debug Mode", self.iface.mainWindow())
+        self.debug_action.setCheckable(True)
+        self.iface.addToolBarIcon(self.debug_action)
 
     def unload(self):
         QgsApplication.processingRegistry().removeProvider(self.provider)

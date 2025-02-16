@@ -36,4 +36,4 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .aerodrome_utilities import AerodromeUtilitiesPlugin
-    return AerodromeUtilitiesPlugin()
+    return AerodromeUtilitiesPlugin(iface)
