@@ -120,7 +120,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 		# Color profile
 		color_profile = self.parameterAsString(parameters, self.COLOR_PROFILE, context)
-		color_profile_data = {}
+		color_profile_data = None
 
 		if color_profile:
 			with open(color_profile, 'r') as f:
@@ -147,7 +147,9 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			if sub_vlayer.isValid():
 				QgsProject.instance().addMapLayer(sub_vlayer)
 				sub_vlayer.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
-				color_feature: dict[str, str] = color_profile_data.get('background', None)
+				color_feature = None
+				if color_profile_data:
+					color_feature: dict[str, str] = color_profile_data.get('background', None)
 				if color_feature:
 					color = color_feature["color"]
 					color_comp = color.split(",")
@@ -176,7 +178,9 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		
 
 		for feature in self.FEATURE_TYPES:
-			color_feature: dict[str, str] = color_profile_data.get(feature, None)
+			color_feature = None
+			if color_profile_data:
+				color_feature: dict[str, str] = color_profile_data.get(feature, None)
 			if color_feature:
 				color = color_feature.get('color', None)
 			feature_path = os.path.join(output_dir, f'{str(count).zfill(3)}_{feature}.gpkg')
@@ -232,7 +236,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 						if ref not in discovered_taxiway_ref_codes:
 							discovered_taxiway_ref_codes.append(ref)
-				
+				color = None
 				if taxiway:
 					if split_taxiways:
 						for ref in discovered_taxiway_ref_codes:
