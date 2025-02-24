@@ -1,5 +1,5 @@
 blank_issues_enabled: falseblank_issues_enabled: false
 contact_links:
   - name: Create an issue
-    url: https://github.com/VATSIM-Radar/data/issues/new/choose
+    url: https://github.com/BrakingChanges/widen-line-qgis-plugin/data/issues/new/choose
     about: Notice a bug? Report it here.
