@@ -24,6 +24,7 @@
 
 import os
 import processing
+import requests
 import json
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
@@ -172,12 +173,46 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			return {}
 		
 		ad_extent = ad_multipoly.extent()
+		ad_bbox = (ad_extent.xMinimum(), ad_extent.yMinimum(), ad_extent.xMaximum(), ad_extent.yMaximum())
+		query = f"""
+		[out:json];
+		(
+		node["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		way["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		relation["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		);
+		out body;
+		"""
+
+		
+		# Send the request
+		url = "https://overpass-api.de/api/interpreter"
+		response = requests.get(url, params={"data": query})
+		feature_types = []
+
+		if response.status_code == 200:
+			data = response.json()
+			
+			# Extract unique "aeroway" values
+			feature_types_init = set()
+			for element in data["elements"]:
+				if "tags" in element and "aeroway" in element["tags"]:
+					feature_types_init.add(element["tags"]["aeroway"])
+			
+			feature_types = list(filter(lambda x: x in list(feature_types_init), self.FEATURE_TYPES))
+		else:
+			feedback.reportError("Failed to fetch OSM data.")
+			return {}
+		
+
+
+
 
 		count = 2
 		ref_layers = []
 		
 
-		for feature in self.FEATURE_TYPES:
+		for feature in feature_types:
 			color_feature = None
 			if color_profile_data:
 				color_feature: dict[str, str] = color_profile_data.get(feature, None)
