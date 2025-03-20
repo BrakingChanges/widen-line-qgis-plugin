@@ -23,7 +23,7 @@
 """
 
 import os
-import processing
+import processing # type: ignore
 import requests
 import json
 from qgis.PyQt.QtCore import QCoreApplication

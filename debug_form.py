@@ -31,7 +31,7 @@ __copyright__ = '(C) 2025 by Aiden Omondi'
 
 __revision__ = '$Format:%H$'
 
-import processing
+import processing # type: ignore
 
 from .tools import load_ui, resolve
 from qgis.PyQt.QtWidgets import QDialog, QPushButton, QLineEdit, QSpinBox
