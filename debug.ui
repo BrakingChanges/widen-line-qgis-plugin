@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>DebugModeSettings</class>
+ <widget class="QDialog" name="DebugModeSettings">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Debug Mode Settings</string>
   </property>
   <widget class="QWidget" name="horizontalLayoutWidget">
    <property name="geometry">
@@ -27,7 +27,7 @@
      <number>38</number>
     </property>
     <item>
-     <widget class="QPushButton" name="run_buton">
+     <widget class="QPushButton" name="run_button">
       <property name="text">
        <string>Run</string>
       </property>
@@ -83,7 +83,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="icao_input"/>
       </item>
      </layout>
     </item>
@@ -110,9 +110,9 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="topsky_line_number_widget">
-        <property name="text">
-         <string/>
+       <widget class="QSpinBox" name="topsky_line_number_widget">
+        <property name="maximum">
+         <number>999999999</number>
         </property>
        </widget>
       </item>
@@ -141,7 +141,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="groundradar_line_number_widget"/>
+       <widget class="QSpinBox" name="groundradar_line_number_widget">
+        <property name="maximum">
+         <number>999999999</number>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -168,7 +172,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="stands_line_number"/>
+       <widget class="QSpinBox" name="stands_line_number">
+        <property name="maximum">
+         <number>999999999</number>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -205,7 +213,7 @@
   <connection>
    <sender>cancel_button</sender>
    <signal>pressed()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>DebugModeSettings</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

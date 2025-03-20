@@ -37,7 +37,8 @@ from .tools import load_ui, resolve
 from qgis.PyQt.QtWidgets import QDialog, QPushButton, QLineEdit, QSpinBox
 from qgis.gui import QgsFileWidget
 from qgis.core import QgsProject, QgsMapLayer, QgsVectorLayer
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, QUuid
+from typing import Callable
 from qgis.utils import iface as iface_import
 
 
@@ -54,6 +55,7 @@ class DebugForm(QDialog, FORM_CLASS):
 		self.previous_topsky_colors = {}
 
 		self._debug_mode = False
+		self.debug_callbacks: dict[str, Callable] = {}
 
 		self.groundradar_file_widget: QgsFileWidget = self.groundradar_file_widget
 		self.topsky_file_widget: QgsFileWidget = self.topsky_file_widget
@@ -76,10 +78,11 @@ class DebugForm(QDialog, FORM_CLASS):
 		self.topsky_line_number = None
 		self.groundradar_line_number = None
 
+
 		self.groundradar_file_widget.fileChanged.connect(self.groundradar_file_changed)
 		self.topsky_file_widget.fileChanged.connect(self.topsky_file_changed)
 		self.stands_file_widget.fileChanged.connect(self.stands_file_changed)
-		self.output_directory_file_widget.fileChanged.connect(self.output_directory.changed)
+		self.output_directory_file_widget.fileChanged.connect(self.output_directory_changed)
 
 		self.icao_input.textChanged.connect(self.icao_input_changed)
 		self.topsky_line_number_widget.textChanged.connect(self.topsky_line_number_changed)
@@ -174,22 +177,31 @@ class DebugForm(QDialog, FORM_CLASS):
 		})
 	
 	def modify_file(self):
-		with open(f'{self.output_directory_path}/GroundRadar.txt', 'r+') as gr_file:
-			lines = gr_file.readlines()
-			lines[self.groundradar_line_number] = f'{self.groundradar_file_path}\n'
-			gr_file.writelines(lines)
+		with open(f'{self.output_directory_path}/GroundRadar.txt', 'r') as gr_output:
+			with open(self.groundradar_file_path, 'r+') as gr_file:
+				lines = gr_file.readlines()
+				output = gr_output.read()
+				out_length = len(gr_output.readlines())
+				gr_file.seek(0)
+				gr_file.writelines(lines[:self.groundradar_line_number] + [output] + lines[self.groundradar_line_number + out_length:])
 		
-		with open(f'{self.output_directory_path}/TopSkyMaps.txt', 'r+') as ts_file:
-			lines = ts_file.readlines()
-			lines[self.topsky_line_number] = f'{self.topsky_file_path}\n'
-			ts_file.writelines(lines)
+		with open(f'{self.output_directory_path}/TopSkyMaps.txt', 'r') as ts_output:
+			with open(self.topsky_file_path, 'r+') as ts_file:
+				lines = ts_file.readlines()
+				output = ts_output.read()
+				out_length = len(ts_output.readlines())
+				ts_file.seek(0)
+				ts_file.writelines(lines[:self.topsky_line_number] + [output] + lines[self.topsky_line_number + out_length:])
 		
-		with open(f'{self.output_directory_path}/Stands.txt', 'r+') as stands_file:
-			lines = stands_file.readlines()
-			lines[self.stands_line_number] = f'{self.stands_file_path}\n'
-			stands_file.writelines(lines)
-	
-
+		with open(f'{self.output_directory_path}/Stands.txt', 'r') as stands_output:
+			with open(self.stands_file_path, 'r+') as stands_file:
+				lines = stands_file.readlines()
+				output = stands_output.read()
+				out_length = len(stands_output.readlines())
+				stands_file.seek(0)
+				stands_file.writelines(lines[:self.stands_line_number] + [output] + lines[self.stands_line_number + out_length:])
+		
+		self.iface.messageBar().pushMessage("Files Modified", "The files have been modified(export complete)", level=0)
 		
 
 
@@ -241,8 +253,20 @@ class DebugForm(QDialog, FORM_CLASS):
 			self.iface.messageBar().pushMessage("Debug Mode Enabled", "Debug mode has been enabled", level=0)
 			self._debug_mode = value
 			self.watch_all_layers()
+
+			for callback in self.debug_callbacks.values():
+				callback(True)
 		else:
-			self._iface.messageBar().pushMessage("Debug Mode Disabled", "Debug mode has been disabled", level=0)
+			self.iface.messageBar().pushMessage("Debug Mode Disabled", "Debug mode has been disabled", level=0)
 			self._debug_mode = value
 			self.unwatch_all_layers()
-		
+
+			for callback in self.debug_callbacks.values():
+				callback(False)
+	
+	def add_debug_callback(self, callback: Callable):
+		self.debug_callbacks[QUuid.createUuid().toString()] = callback
+	
+	def remove_debug_callback(self, id_: str):
+		self.debug_callbacks.pop(id_)
+				

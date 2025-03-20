@@ -38,6 +38,7 @@ from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtWidgets import QAction, QToolBar
 from qgis.PyQt.QtGui import QIcon
+from qgis.gui import QgisInterface
 from .aerodrome_utilities_provider import AerodromeUtilitiesProvider
 from .debug_form import DebugForm
 from .tools import resolve
@@ -59,7 +60,8 @@ class AerodromeUtilitiesPlugin(object):
         :type iface: QgsInterface
         """
         # Save reference to the QGIS interface
-        self.iface = iface
+        self.iface: QgisInterface = iface
+        self.debug_mode = False
         self.toolbar: QToolBar | None = None
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
@@ -120,11 +122,24 @@ class AerodromeUtilitiesPlugin(object):
             self.first_start = False
             self.dlg = DebugForm()
         
+        if self.debug_mode and self.dlg != None:
+            self.dlg.debug_mode = False        
+        self.dlg.add_debug_callback(self.debug_mode_changed)
         self.dlg.show()
         result = self.dlg.exec_()
 
-        if result:
-            pass
+    def debug_mode_changed(self, state: bool):
+        if state:
+            self.debug_mode = True
+            self.debug_action.setIcon(QIcon(resolve('icon_active.png')))
+        else:
+            self.debug_mode = False
+            self.debug_action.setIcon(QIcon(resolve('icon2.png')))
+
+        
 
     def unload(self):
         QgsApplication.processingRegistry().removeProvider(self.provider)
+        self.toolbar.removeAction(self.debug_action)
+        self.toolbar.deleteLater()
+        self.first_start = True
