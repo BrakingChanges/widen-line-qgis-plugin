@@ -39,6 +39,7 @@ AIRPORT:
 MAP:
 FOLDER:
 AIRPORT:
+ACTIVE:1
 '''
 
 	def initAlgorithm(self, config=None):
@@ -185,7 +186,7 @@ AIRPORT:
 				continue
 
 			# Add the header for ground radar maps
-			content_grmaps += self.gr_header.replace('MAP:', f'MAP:{icao} TWY LABELS').replace('FOLDER:', f'FOLDER:{icao}').replace("AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:TWY", "COLOR:RMK") + '\n'
+			content_grmaps += self.gr_header.replace('MAP:', f'MAP:{icao} TWY LABELS').replace('FOLDER:', f'FOLDER:{icao}').replace("AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:", "COLOR:RMK") + '\n'
 
 			for feature in layer.getFeatures():
 				# Ensure the feature is a point and has the required 'STAND' attribute
