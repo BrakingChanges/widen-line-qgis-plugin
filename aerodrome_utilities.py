@@ -35,8 +35,12 @@ import sys
 import inspect
 
 from qgis.core import QgsApplication
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtWidgets import QAction, QToolBar
+from qgis.PyQt.QtGui import QIcon
 from .aerodrome_utilities_provider import AerodromeUtilitiesProvider
+from .debug_form import DebugForm
+from .tools import resolve
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
@@ -47,8 +51,51 @@ if cmd_folder not in sys.path:
 class AerodromeUtilitiesPlugin(object):
 
     def __init__(self, iface):
-        self.provider = None
+        """Constructor.
+
+        :param iface: An interface instance that will be passed to this class
+            which provides the hook by which you can manipulate the QGIS
+            application at run time.
+        :type iface: QgsInterface
+        """
+        # Save reference to the QGIS interface
         self.iface = iface
+        self.toolbar: QToolBar | None = None
+        # initialize plugin directory
+        self.plugin_dir = os.path.dirname(__file__)
+        # initialize locale
+        locale = QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(
+            self.plugin_dir,
+            'i18n',
+            'AerodromeUtilities_{}.qm'.format(locale))
+
+        if os.path.exists(locale_path):
+            self.translator = QTranslator()
+            self.translator.load(locale_path)
+            QCoreApplication.installTranslator(self.translator)
+
+        # Declare instance attributes
+        self.actions = []
+        self.menu = self.tr(u'&GUI Import')
+
+        # Check if plugin was started the first time in current QGIS session
+        # Must be set in initGui() to survive plugin reloads
+        self.first_start = None
+    
+    def tr(self, message):
+        """Get the translation for a string using Qt translation API.
+
+        We implement this ourselves since we do not inherit QObject.
+
+        :param message: String for translation.
+        :type message: str, QString
+
+        :returns: Translated version of message.
+        :rtype: QString
+        """
+        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
+        return QCoreApplication.translate('AerodromeUtilities', message)
 
     def initProcessing(self):
         """Init Processing provider for QGIS >= 3.8."""
@@ -57,9 +104,27 @@ class AerodromeUtilitiesPlugin(object):
 
     def initGui(self):
         self.initProcessing()
-        self.debug_action = QAction("Toggle Debug Mode", self.iface.mainWindow())
-        self.debug_action.setCheckable(True)
-        self.iface.addToolBarIcon(self.debug_action)
+
+        self.toolbar: QToolBar = self.iface.addToolBar('Aerodrome Utilities')
+        self.toolbar.setObjectName('Aerodrome Utilities')
+
+
+        self.debug_action = QAction(QIcon(resolve('icon2.png')),"Toggle Debug Mode", self.iface.mainWindow())
+        self.debug_action.triggered.connect(self.toggle_debug)
+        self.toolbar.addAction(self.debug_action)
+
+        self.first_start = True
+
+    def toggle_debug(self):
+        if self.first_start:
+            self.first_start = False
+            self.dlg = DebugForm()
+        
+        self.dlg.show()
+        result = self.dlg.exec_()
+
+        if result:
+            pass
 
     def unload(self):
         QgsApplication.processingRegistry().removeProvider(self.provider)

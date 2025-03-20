@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/plugins/aerodrome_utilities">
+    <file>icon.png</file>
+    <file>icon2.png</file>
+    <file>icon_active.png</file>
+  </qresource>
+</RCC>

@@ -31,13 +31,18 @@ __copyright__ = '(C) 2024 by Aiden Omondi'
 __revision__ = '$Format:%H$'
 
 import processing
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant
 from qgis.core import (
 	QgsProcessingAlgorithm, 
 	QgsProcessingParameterFeatureSource, 
 	QgsProcessingParameterFeatureSink,
 	QgsFeatureSink,
+	QgsProcessingUtils,
+	QgsVectorLayer,
+	QgsField,
 )
+from qgis.PyQt.QtGui import QColor
+
 
 class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 
@@ -51,6 +56,18 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 	def processAlgorithm(self, parameters, context, feedback):
 		# Retrieve the input layer
 		layer = self.parameterAsSource(parameters, self.INPUT, context)
+		layer_source = self.parameterAsString(parameters, self.INPUT, context)
+		map_layer = QgsProcessingUtils.mapLayerFromString(
+			layer_source, context)
+		
+		color = None
+		ts_color = None
+		gr_color = None
+
+		if map_layer:
+			color = map_layer.customProperty('color', None)
+			ts_color = map_layer.customProperty('ts_color', None)
+			gr_color = map_layer.customProperty('gr_color', None)
 		
 		if layer is None:
 			feedback.reportError('Could not load input layer!')
@@ -72,7 +89,7 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 		
 		# Convert multipart lines to single parts
 		feedback.pushInfo('Converting multipart geometries to single parts...')
-		single_parts_layer = processing.run("qgis:multiparttosingleparts", {
+		single_parts_layer: QgsVectorLayer | None = processing.run("qgis:multiparttosingleparts", {
 			'INPUT': lines_layer,
 			'OUTPUT': 'memory:'
 		}, context=context, feedback=feedback)['OUTPUT']
@@ -80,6 +97,24 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 		if single_parts_layer is None:
 			feedback.reportError('Multipart to single-part conversion failed!')
 			return {}
+		
+		single_parts_layer.startEditing()
+
+		# Check if 'fid' exists, if not, add it
+		fid_idx = single_parts_layer.fields().indexFromName("fid")
+		if fid_idx == -1:
+			single_parts_layer.dataProvider().addAttributes([QgsField("fid", QVariant.Int)])
+			single_parts_layer.updateFields()
+			fid_idx = single_parts_layer.fields().indexFromName("fid")
+
+		# Assign new unique fids
+		new_fid = 1
+		for feature in single_parts_layer.getFeatures():
+			feature.setAttribute(fid_idx, new_fid)  # Assign new fid
+			single_parts_layer.updateFeature(feature)  # Update the feature in the layer
+			new_fid += 1
+
+		single_parts_layer.commitChanges()
 
 		# Output the final single-part line layer
 		(sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,
@@ -87,6 +122,17 @@ class PolygonToSinglePartLinesAlgorithm(QgsProcessingAlgorithm):
 
 		for feature in single_parts_layer.getFeatures():
 			sink.addFeature(feature, QgsFeatureSink.FastInsert)
+
+		output_layer = QgsProcessingUtils.mapLayerFromString(dest_id, context)
+
+		if output_layer and color:
+			output_layer.setCustomProperty('color', color)
+			output_layer.setCustomProperty('ts_color', ts_color)
+			output_layer.setCustomProperty('gr_color', gr_color)
+			color_comp = color.split(",")
+			color_ints = list(map(int, color_comp))
+			output_layer.renderer().symbol().setColor(
+				QColor().fromRgb(color_ints[0], color_ints[1], color_ints[2]))
 
 		feedback.pushInfo('Algorithm completed successfully.')
 		return {self.OUTPUT: dest_id}

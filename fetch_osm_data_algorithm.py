@@ -24,6 +24,8 @@
 
 import os
 import processing
+import requests
+import json
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
 	QgsProcessingAlgorithm, 
@@ -39,8 +41,10 @@ from qgis.core import (
 	QgsProcessingParameterNumber,
 	QgsWkbTypes,
 	QgsFeatureRequest,
+	QgsProcessingParameterFile
 )
 from qgis.core import QgsProcessingParameterFolderDestination
+from qgis.PyQt.QtGui import QColor
 
 class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
@@ -57,6 +61,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 	SPLIT_TAXIWAYS = 'SPLIT_TAXIWAYS'
 	SPLIT_TAXIWAYS_OUTPUT = 'SPLIT_TAXIWAYS_OUTPUT'
 	
+	COLOR_PROFILE = 'COLOR_PROFILE'
 
 	FEATURE_TYPES = [
 		'heliport',
@@ -98,6 +103,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		self.addParameter(QgsProcessingParameterBoolean(self.SPLIT_TAXIWAYS, 'Split Taxiways'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.SPLIT_TAXIWAYS_OUTPUT, 'Split Taxiways Output Directory'))
 		self.addParameter(QgsProcessingParameterFolderDestination(self.OUTPUT_DIR, 'Output Directory'))
+		self.addParameter(QgsProcessingParameterFile(self.COLOR_PROFILE, 'Color Profile', optional=True))
 
 	def processAlgorithm(self, parameters, context: QgsProcessingContext, feedback: QgsProcessingFeedback):
 		# Get ICAO code and output directory
@@ -113,7 +119,13 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		split_taxiways = self.parameterAsBoolean(parameters, self.SPLIT_TAXIWAYS, context)
 		split_taxiways_output_folder = self.parameterAsString(parameters, self.SPLIT_TAXIWAYS_OUTPUT, context)
 
-		
+		# Color profile
+		color_profile = self.parameterAsString(parameters, self.COLOR_PROFILE, context)
+		color_profile_data = None
+
+		if color_profile:
+			with open(color_profile, 'r') as f:
+				color_profile_data: dict[str, str] = json.load(f)["colors"]
 		# Run OSM query for airport based on ICAO code
 		feedback.pushInfo(f"Fetching OSM data for {icao_code}...")
 		feature_path = os.path.join(output_dir, '001_aeroway_aerodrome.gpkg')
@@ -136,20 +148,76 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			if sub_vlayer.isValid():
 				QgsProject.instance().addMapLayer(sub_vlayer)
 				sub_vlayer.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
-				QgsProject.instance().addMapLayer(sub_vlayer)
-		
+				color_feature = None
+				if color_profile_data:
+					color_feature: dict[str, str] = color_profile_data.get('background', None)
+				if color_feature:
+					color = color_feature["color"]
+					color_comp = color.split(",")
+					color_ints = list(map(int, color_comp))
+					sub_vlayer.renderer().symbol().setColor(QColor().fromRgb(color_ints[0], color_ints[1], color_ints[2]))
+
+					gr_color = color_feature["gr_color"]
+					ts_color = color_feature["ts_color"]
+					sub_vlayer.setCustomProperty("ts_color", ts_color)
+					sub_vlayer.setCustomProperty("gr_color", gr_color)
+					sub_vlayer.setCustomProperty("color", color)
+
+					QgsProject.instance().addMapLayer(sub_vlayer)
+			
 		ad_multipoly: QgsVectorLayer = ad_layer_initial['OUTPUT_MULTIPOLYGONS']
+
+
 		if not ad_multipoly.isValid():
 			feedback.reportError("Failed to load aerodrome layer.")
 			return {}
 		
 		ad_extent = ad_multipoly.extent()
+		ad_bbox = (ad_extent.xMinimum(), ad_extent.yMinimum(), ad_extent.xMaximum(), ad_extent.yMaximum())
+		query = f"""
+		[out:json];
+		(
+		node["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		way["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		relation["aeroway"]({ad_bbox[1]},{ad_bbox[0]},{ad_bbox[3]},{ad_bbox[2]});
+		);
+		out body;
+		"""
+
+		
+		# Send the request
+		url = "https://overpass-api.de/api/interpreter"
+		response = requests.get(url, params={"data": query})
+		feature_types = []
+
+		if response.status_code == 200:
+			data = response.json()
+			
+			# Extract unique "aeroway" values
+			feature_types_init = set()
+			for element in data["elements"]:
+				if "tags" in element and "aeroway" in element["tags"]:
+					feature_types_init.add(element["tags"]["aeroway"])
+			
+			feature_types = list(filter(lambda x: x in list(feature_types_init), self.FEATURE_TYPES))
+		else:
+			feedback.reportError("Failed to fetch OSM data.")
+			return {}
+		
+
+
+
 
 		count = 2
 		ref_layers = []
 		
 
-		for feature in self.FEATURE_TYPES:
+		for feature in feature_types:
+			color_feature = None
+			if color_profile_data:
+				color_feature: dict[str, str] = color_profile_data.get(feature, None)
+			if color_feature:
+				color = color_feature.get('color', None)
 			feature_path = os.path.join(output_dir, f'{str(count).zfill(3)}_{feature}.gpkg')
 			processing.run("quickosm:downloadosmdataextentquery", {
 				'KEY': 'aeroway',
@@ -187,7 +255,6 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 				discovered_taxiway_ref_codes = []
 
-
 				for layer_feature in sub_vlayer.getFeatures():
 					
 					aeroway = "N/A"
@@ -204,7 +271,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 
 						if ref not in discovered_taxiway_ref_codes:
 							discovered_taxiway_ref_codes.append(ref)
-				
+				color = None
 				if taxiway:
 					if split_taxiways:
 						for ref in discovered_taxiway_ref_codes:
@@ -254,6 +321,10 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 					sub_vlayer.setName(f"{str(count).zfill(3)}_{feature}_centerline_{self.GEOMETRY_TYPES[sub_vlayer.geometryType()]}")
 
 				else:
+					if color is not None:
+						color_comp = color.split(",")
+						color_ints = list(map(int, color_comp))
+						sub_vlayer.renderer().symbol().setColor(QColor().fromRgb(color_ints[0], color_ints[1], color_ints[2]))
 					QgsProject.instance().addMapLayer(sub_vlayer)
 				count += 1
 
