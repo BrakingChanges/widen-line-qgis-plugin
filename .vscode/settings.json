@@ -1,18 +1,16 @@
 {
-    "python.languageServer": "Jedi",
-    "python.linting.enabled": false,
-    "python.linting.flake8Enabled": true,
-    "python.formatting.provider": "black",
-    "editor.formatOnSave": true,
-    "[python]": {
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": "always"
-        }
-    },
-    "python.testing.unittestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "files.associations": {
-        "metadata.txt": "ini"
+  "python.languageServer": "Pylance",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
     }
+  },
+  "python.testing.unittestEnabled": false,
+  "python.testing.nosetestsEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "files.associations": {
+    "metadata.txt": "ini"
+  },
+  "python.analysis.autoImportCompletions": false
 }
