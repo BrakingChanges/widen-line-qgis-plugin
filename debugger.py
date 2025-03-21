@@ -4,9 +4,9 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsMapLayer
 
 class ExportWorker(QThread):
     """Handles export and file modification in a background thread."""
-    finished = pyqtSignal()
+    finished = pyqtSignal(list)
 
-    def __init__(self, iface, output_directory_path, icao_input_text, groundradar_file_path, topsky_file_path, stands_file_path, groundradar_line_number, topsky_line_number, stands_line_number):
+    def __init__(self, iface, output_directory_path, icao_input_text, groundradar_file_path, topsky_file_path, stands_file_path, groundradar_line_number, topsky_line_number, stands_line_number, prev_out_length: list[int]):
         super().__init__()
         self.iface = iface
         self.output_directory_path = output_directory_path
@@ -17,6 +17,7 @@ class ExportWorker(QThread):
         self.groundradar_line_number = groundradar_line_number
         self.topsky_line_number = topsky_line_number
         self.stands_line_number = stands_line_number
+        self.prev_out_length = prev_out_length
 
     def run(self):
         """Runs the processing algorithm and modifies files in a separate thread."""
@@ -28,7 +29,7 @@ class ExportWorker(QThread):
         })
         
         self.modify_file()
-        self.finished.emit()  # Signal that processing is done
+        self.finished.emit(self.prev_out_length)  # Signal that processing is done
 
     def modify_file(self):
         """Handles file modifications after processing."""
@@ -37,27 +38,18 @@ class ExportWorker(QThread):
             ("TopSkyMaps.txt", self.topsky_file_path, self.topsky_line_number),
             ("Stands.txt", self.stands_file_path, self.stands_line_number),
         ]:
-            # Read the newly exported data
             with open(f'{self.output_directory_path}/{file_name}', 'r') as output_file:
-                new_output = output_file.read().strip()  # Strip to avoid unwanted blank lines
-
-            # Read the existing file
-            with open(file_path, 'r+') as file:
-                lines = file.readlines()
-
-                # Find where the previous version starts and ends
-                start = line_number
-                end = start
-                while end < len(lines) and lines[end].strip():  
-                    end += 1  # Move until an empty line or end of file
-
-                # Replace the old version with the new one
-                updated_lines = lines[:start] + [new_output + "\n"] + lines[end:]
-
-                # Write back the modified content
-                file.seek(0)
-                file.writelines(updated_lines)
-                file.truncate()
+                with open(file_path, 'r+') as file:
+                    lines = file.readlines()
+                    output = output_file.read()
+                    out_length = len(output_file.readlines())
+                    file.seek(0)
+                    
+                    if len(self.prev_out_length) > 0:
+                        file.writelines(lines[:line_number] + [output] + lines[line_number + self.prev_out_length[-1]:])
+                    else:
+                        file.writelines(lines[:line_number] + [output] + lines[line_number:])
+                    self.prev_out_length.append(out_length)
 
 
 class Debugger:
@@ -74,6 +66,7 @@ class Debugger:
         self.topsky_line_number = None
         self.stands_line_number = None
         self.worker_thread = None
+        self.prev_out_length = []
 
     def run(self, iface, output_directory_path, icao_input_text, groundradar_file_path, topsky_file_path, stands_file_path, groundradar_line_number, topsky_line_number, stands_line_number):
         self.iface = iface
@@ -125,14 +118,15 @@ class Debugger:
         self.worker_thread = ExportWorker(
             self.iface, self.output_directory_path, self.icao_input_text,
             self.groundradar_file_path, self.topsky_file_path, self.stands_file_path,
-            self.groundradar_line_number, self.topsky_line_number, self.stands_line_number
+            self.groundradar_line_number, self.topsky_line_number, self.stands_line_number, self.prev_out_length
         )
         
         self.worker_thread.finished.connect(self.on_export_finished)
         self.worker_thread.start()
 
-    def on_export_finished(self):
+    def on_export_finished(self, prev_out_length):
         """Handles post-processing UI update."""
+        self.prev_out_length = prev_out_length
         self.iface.messageBar().pushMessage("Files Modified", "Export complete.", level=0)
 
     def connect_layer_signals(self, layer):
