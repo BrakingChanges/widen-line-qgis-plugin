@@ -128,7 +128,7 @@ ACTIVE:1
 				dest.write(content)
 
 	def convert_geojson_to_groundradar(self, out_path, multi_map, icao):
-		content = '' if multi_map else self.gr_header_single.replace("MAP:", f"MAP:{icao}").replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
+		content = self.gr_header.replace('MAP:', f'MAP:{icao} {layer_name}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}") if multi_map else self.gr_header_single.replace("MAP:", f"MAP:{icao}").replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
 		
 		layers = list(reversed(iface.mapCanvas().layers()))  # Access only checked layers in the map canvas
 		
@@ -137,13 +137,10 @@ ACTIVE:1
 				continue
 
 			layer_name = layer.name().upper()
-			if multi_map:
-				content += self.gr_header.replace('MAP:', f'MAP:{icao} {layer_name}').replace("FOLDER:", f"FOLDER:{icao}").replace("AIRPORT:", f"AIRPORT:{icao}")
-			else:
-				if 'STAND' not in layer_name:
-					gr_color = layer.customProperty('gr_color', None)
-					content += f'\n// {layer_name}\nCOLOR:{gr_color if gr_color else 'TWY'}\nCOORDTYPE:OTHER:REGION\n'
-			
+			if 'STAND' not in layer_name:
+				gr_color = layer.customProperty('gr_color', None)
+				content += f'\n// {layer_name}\nCOLOR:{gr_color if gr_color else 'TWY'}\nCOORDTYPE:OTHER:REGION\n'
+		
 			for feature in layer.getFeatures():
 				coords = []
 				geom = feature.geometry()
@@ -186,7 +183,8 @@ ACTIVE:1
 				continue
 
 			# Add the header for ground radar maps
-			content_grmaps += self.gr_header.replace('MAP:', f'MAP:{icao} TWY LABELS').replace('FOLDER:', f'FOLDER:{icao}').replace("AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:", "COLOR:RMK") + '\n'
+			color = layer.customProperty('gr_color', None)
+			content_grmaps += self.gr_header.replace('MAP:', f'MAP:{icao} TWY LABELS').replace('FOLDER:', f'FOLDER:{icao}').replace("AIRPORT:", f"AIRPORT:{icao}").replace("COLOR:", f"COLOR:{color}" if color else "COLOR:WHITE") + '\n'
 
 			for feature in layer.getFeatures():
 				# Ensure the feature is a point and has the required 'STAND' attribute

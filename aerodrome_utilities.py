@@ -39,6 +39,8 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtWidgets import QAction, QToolBar
 from qgis.PyQt.QtGui import QIcon
 from qgis.gui import QgisInterface
+
+from .debugger import Debugger
 from .aerodrome_utilities_provider import AerodromeUtilitiesProvider
 from .debug_form import DebugForm
 from .tools import resolve
@@ -118,15 +120,23 @@ class AerodromeUtilitiesPlugin(object):
         self.first_start = True
 
     def toggle_debug(self):
+        self.debugger = Debugger()
+
         if self.first_start:
             self.first_start = False
-            self.dlg = DebugForm()
+            self.dlg = DebugForm(self.debugger)
         
         if self.debug_mode and self.dlg != None:
             self.dlg.debug_mode = False        
         self.dlg.add_debug_callback(self.debug_mode_changed)
         self.dlg.show()
-        result = self.dlg.exec_()
+        self.dlg.finished.connect(self.finished)
+        self.dlg.open()
+    
+
+    def finished(x):
+        pass
+
 
     def debug_mode_changed(self, state: bool):
         if state:
