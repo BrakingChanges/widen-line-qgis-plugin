@@ -141,7 +141,7 @@ AIRPORT:
 			else:
 				if 'STAND' not in layer_name:
 					gr_color = layer.customProperty('gr_color', None)
-					content += f'\n// {layer_name}\nCOLOR:{gr_color if gr_color else 'TWY'}\nCOORDTYPE:OTHER:REGION\n'
+					content += f'\n// {layer_name}\nCOLOR:{gr_color if gr_color else "TWY"}\nCOORDTYPE:OTHER:REGION\n'
 			
 			for feature in layer.getFeatures():
 				coords = []
