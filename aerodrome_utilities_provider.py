@@ -37,6 +37,7 @@ from .fetch_osm_data_algorithm import FetchOSMDataAlgorithm
 from .geojson_to_topsky_groundradar import GeojsonToTopskyGroundradar
 from .split_taxiway_algorithm import SplitTaxiwayAlgorithm
 from .colorize_algorithm import ColorizeAlgorithm
+from .auto_label_taxiway_algorithm import AutoLabelTaxiwayAlgorithm
 
 class AerodromeUtilitiesProvider(QgsProcessingProvider):
 
@@ -63,6 +64,7 @@ class AerodromeUtilitiesProvider(QgsProcessingProvider):
         self.addAlgorithm(GeojsonToTopskyGroundradar())
         self.addAlgorithm(SplitTaxiwayAlgorithm())
         self.addAlgorithm(ColorizeAlgorithm())
+        self.addAlgorithm(AutoLabelTaxiwayAlgorithm())
 
     def id(self):
         """
