@@ -188,7 +188,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		# Send the request
 		url = "https://overpass-api.de/api/interpreter"
 		response = requests.get(url, params={"data": query})
-		feature_types = []
+		feature_types = self.FEATURE_TYPES
 
 		if response.status_code == 200:
 			data = response.json()
@@ -198,8 +198,8 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 			for element in data["elements"]:
 				if "tags" in element and "aeroway" in element["tags"]:
 					feature_types_init.add(element["tags"]["aeroway"])
-			
-			feature_types = list(filter(lambda x: x in list(feature_types_init), self.FEATURE_TYPES))
+			if  len(feature_types_init) > 0:
+				feature_types = list(filter(lambda x: x in list(feature_types_init), self.FEATURE_TYPES))
 		else:
 			feedback.reportError("Failed to fetch OSM data.")
 			return {}
@@ -213,6 +213,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		
 
 		for feature in feature_types:
+			feedback.pushInfo(f"BBOX {ad_extent}")
 			color_feature = None
 			if color_profile_data:
 				color_feature: dict[str, str] = color_profile_data.get(feature, None)
