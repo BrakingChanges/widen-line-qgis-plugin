@@ -12,5 +12,6 @@
   "files.associations": {
     "metadata.txt": "ini"
   },
-  "python.analysis.autoImportCompletions": false
+  "python.analysis.autoImportCompletions": false,
+  "python-envs.pythonProjects": []
 }
