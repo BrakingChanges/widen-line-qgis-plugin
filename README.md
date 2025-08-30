@@ -1,44 +1,68 @@
 # AerodromeUtilities
 
-AerodromeUtilities is a simple plugin helping in fetching OSM data for airports, widening taxiways and exporting the data to data file formats of the [EuroScope](euroscope.hu/wp/) plugins [TopSky](https://forum.vatsim-scandinavia.org/d/38-topsky-plugin-25-beta-10) and [GroundRadar](https://forum.vatsim-scandinavia.org/d/33-ground-radar-plugin-15) **PLEASE NOTE: This plugin is quite incomplete :) so except many bugs**
+AerodromeUtilities is a simple plugin helping in fetching OSM data for airports, widening taxiways and exporting the data to data file formats of the [EuroScope](euroscope.hu/wp/) plugins [TopSky](https://forum.vatsim-scandinavia.org/d/38-topsky-plugin-25-beta-10) and [GroundRadar](https://forum.vatsim-scandinavia.org/d/33-ground-radar-plugin-15)
+
+> **Note**: This plugin is still active development,if you find any bugs, you are more than welcome to report them by opening an issue.
 
 ## Quickstart
 
-### Installation
-- Go to the QGIS Plugin Manager window and ensure both [QuickOSM](https://plugins.qgis.org/plugins/QuickOSM/) and the [plugin](https://plugins.qgis.org/plugins/widen-line-qgis-plugin/) are installed. **NOTE: The plugin requires QuickOSM to be installed in order for it to work**
+### **Install prerequisites**  
+- QGIS (3.28+ recommended)  
+- [QuickOSM plugin](https://plugins.qgis.org/plugins/QuickOSM/)  
+- This plugin (download or install from ZIP) [here](https://plugins.qgis.org/plugins/widen-line-qgis-plugin)
 
+### **Fetch airport data**  
+  - Open the Processing Toolbox (`Ctrl+Alt+T`)  
+   - Search for **Fetch Aerodrome Data**  
+   - Enter an ICAO code (e.g. `HKJK`) and an output folder  
+   - Run — your aerodrome layers will appear in QGIS.
+### **Perform edits**
+#### **Widen Txiways**
+  - Recommended: set your **Project CRS** to `EPSG:3857` before widening (ensures buffer distance is in metres).  
+  - The plugin attempts to convert CRS automatically, but `EPSG:3857` is the most reliable for widening. 
+  - In the processing toolbox, select the taxiway widening algorithm.
+  - **Input Layer**: Select the runway or taxiway layer you want to widen
+  -  **Buffer Distance**: The total width of the taxiway
+  - **Convert Polygon to Linestring**: Tick this if your are exporting using the old method, *this is not recommended, see [docs](https://github.com/BrakingChanges/widen-line-qgis-plugin/wiki)*
+  - **Dissolve Result**: *Highly recommended* — smooths buffer ends to join taxiway section.
+  - **Output Layer**: Set a file path to save the widened taxiway(*highly recommended*) or leave empty to set it to a temporary file  
 
-### Fetching Airport OSM Data
-![Fetching OSM Data](osmfetcher.png)
-To fetch OSM Data, you can access it via the processing toolbox by settings cog icon in QGis toolbar or `Ctrl+Alt+T`. 
+#### **Adding text**
+  - In order to add text data that the parser provided by this plugin can read, you need to create a layer of any type and add a string attribute named `TEXT`
 
-Next, you can set an ICAO Code and setting an output folder. I reccommend adding it to a folder like `{ICAO}`. When you click "Run", different layers should be loaded and you should see them being generated on the map. At the end of the execution, you might see layers failing to generate like this:
-![OSM Normal Red Text](osmfetchererror.png)
-This message is normal so it is safe to ignore. *I haven't yet found the cause of this.*
+#### **Adding Stand Information**
+  - All attributes that are readable by the exporter parser in this plugin are in exact one-to-one concordance with GroundRadar `Stands.txt` file attributes, for example the `WTC` attribute states the intended aircraft weight class for that stands
+  - Possible attributes are:
+    - `STAND`: **Required** - The name of the stand
+    - `WTC`: The intended weight class category of this stand
+    - `USE`: The intended aircraft to be using the stand
+    - `AREA`: Whether this stand is an indvidual stand or a widea area, like a GA apron.
 
-### Widening Taxiways / Runways
-With the airport loaded, you can select the Widen Taxiways tool from the processing tool under AerodromeUtilities. When you select the tool, the following interface will pop up. When widening taxiways, you may change the Project CRS to `ESPG:3857` as that works best and gives the widener the scope of metres. The plugin should convert the lines CRS automatically but may not work 100% of the time so for that reason it's reccommended the project CRS be `ESPG:3857` for the purpose of widening taxiways but you can change the CRS as you wish later(`ESPG:4326` WGS 84 standard is reccommended).
+#### **Manual Editing**
+  - You may perform any number of operations to the polygons, linestrings and points within the QGIS project and they will be reflected in the final exported layout in EuroScope.
+  - I recommend using Bing or Google Maps satellite imagery layers to correct for imperfections within the OSM data and align it to real world data
+  - One example of manual editing is creating a line layer and drawing out the edges of runway markings using satellite data.
 
-![alt text](image.png)
-  
-Options
-- Input Layer: This is the input line layer you want to widen (eg taxiway/runway layer)
-- Buffer distance: The distance you want to extend each side by(**not the taxiway/runway witdth but it divided by 2**)
-- Convert Polygon to linestring: Whether to convert the resultant polygon back into a linestring for export to TS/GR 
-- Dissolve Result: Smooths the end caps generated by the native buffer tool in QGis. *Highly reccommended because it reduces the risk of TS Not accepting it as a polygon*
-- Output Layer - Saves the output layer to a file which is reccommended to prevent losing any layers.
+### **Exportation**
+To export layers for EuroScope plugins:
 
-After this the taxiways may be further digitized in any using Google Satellite imagery etc, as OSM data is often not exact for your use case and prone to errors.
+1. Search for **Export Aerodrome Data** in the Processing Toolbox.
+2. Enter:
+   - **ICAO Code**
+   - **Output Directory**
+3. Run the tool, it will create three files:
 
-Then taxiways should show up as configured!
-![Project CRS Done](image-3.png)
+| File              | Purpose                              |
+|-------------------|--------------------------------------|
+| `TopSkyMaps.txt`  | Map data for TopSky plugin           |
+| `GroundRadar.txt` | Map data for GroundRadar plugin      |
+| `Stands.txt`      | Stand data for GroundRadar plugin    |
 
-### Exportation
-In order to export the layers, specify the ICAO code and specify the output directory. This should create 3 files in the output directory.
+---
 
-- TopSkyMaps.txt - *Maps for use with TopSky plugin*
-- GroundRadar.txt - *Maps for use with GroundRadar plugin*
-- Stands.txt - *Stand data for use with GroundRadar plugin*
+### 🧩 Tips & Best Practices
+- Always check OSM data visually: some airports may have missing or inaccurate geometry.
+- For precise widening, compare with satellite imagery (Google, Bing, etc.).
 
 More information on other algorithms in the [wiki](https://github.com/BrakingChanges/widen-line-qgis-plugin/wiki)
 
@@ -49,5 +73,17 @@ Contribution is always welcome, the current contribution process is as follows:
 3. Checkout a branch from main
 4. Make your changes
 5. Push the changes
-6. Make an issue with a supporting PR fixing that issues
+6. Make an issue with a supporting PR fixing that issues.
+
+
+## 📄 License
+GPL v2 or later — see [LICENSE](LICENSE).
+
+---
+
+**Links:**  
+- [EuroScope](http://euroscope.hu/wp/)  
+- [TopSky Plugin](https://forum.vatsim-scandinavia.org/d/38-topsky-plugin-25-beta-10)  
+- [GroundRadar Plugin](https://forum.vatsim-scandinavia.org/d/33-ground-radar-plugin-15)  
+- [QuickOSM Plugin](https://plugins.qgis.org/plugins/QuickOSM/)  
 
