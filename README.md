@@ -46,7 +46,7 @@ AerodromeUtilities is a simple plugin helping in fetching OSM data for airports,
 ### **Exportation**
 To export layers for EuroScope plugins:
 
-1. Search for **Export Aerodrome Data** in the Processing Toolbox.
+1. Search for **Convert GeoJSON to TS/GR** in the Processing Toolbox.
 2. Enter:
    - **ICAO Code**
    - **Output Directory**
