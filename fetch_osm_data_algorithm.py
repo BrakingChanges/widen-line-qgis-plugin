@@ -188,7 +188,7 @@ class FetchOSMDataAlgorithm(QgsProcessingAlgorithm):
 		# Send the request
 		url = "https://overpass-api.de/api/interpreter"
 		response = requests.get(url, params={"data": query})
-		feature_types = self.FEATURE_TYPES
+		feature_types = []
 
 		if response.status_code == 200:
 			data = response.json()
