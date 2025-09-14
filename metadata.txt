@@ -6,7 +6,7 @@
 name=Aerodrome Utilities
 qgisMinimumVersion=3.0
 description=Fetches OSM Data and processes it for aerodroms with various algorithms
-version=0.0.6
+version=0.0.6-hotfix1
 author=Aiden Omondi
 email=helpertech83@gmail.com
 
